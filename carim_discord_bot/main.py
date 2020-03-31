@@ -1,10 +1,13 @@
 import argparse
 import logging
+import shlex
 
 import discord
 
 client = discord.Client()
 log = None
+message_parser = argparse.ArgumentParser()
+message_parser.add_argument('--hello', dest='hello', action='store_true')
 
 
 @client.event
@@ -17,8 +20,11 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('$hello'):
-        await message.channel.send('Hello!')
+    if message.content.startswith('--'):
+        args = shlex.split(message.content, comments=True)
+        parsed_args = message_parser.parse_args(args)
+        if parsed_args.hello:
+            await message.channel.send(f'Hello, {message.author.display_name}!')
 
 
 def main():
