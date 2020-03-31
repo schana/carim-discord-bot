@@ -1,14 +1,18 @@
 import argparse
 import logging
+import random
 import shlex
 
 import discord
 
 client = discord.Client()
 log = None
-message_parser = argparse.ArgumentParser(add_help=False)
-message_parser.add_argument('--help', dest='help', action='store_true')
-message_parser.add_argument('--hello', dest='hello', action='store_true')
+message_parser = argparse.ArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things')
+message_parser.add_argument('--help', action='store_true', help='displays this usage information')
+message_parser.add_argument('--hello', action='store_true', help='says hello to the beloved user')
+message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
+message_parser.add_argument('--random', nargs='?', type=int, default=argparse.SUPPRESS,
+                            help='generate a random number between 0 and RANDOM (default: 100)')
 
 
 @client.event
@@ -27,7 +31,14 @@ async def on_message(message):
         if parsed_args.help:
             await message.channel.send(message_parser.format_help())
         if parsed_args.hello:
-            await message.channel.send(f'Hello, {message.author.display_name}!')
+            word = random.choice(('Hello', 'Howdy', 'Greetings', 'Hiya', 'Hey'))
+            await message.channel.send(f'{word}, {message.author.display_name}!')
+        if parsed_args.secret:
+            await message.channel.send(f'Thank you, cnofafva, for giving me life!')
+        if 'random' in parsed_args:
+            if parsed_args.random is None:
+                parsed_args.random = 100
+            await message.channel.send(f'Your random number is: {random.randint(0, parsed_args.random)}')
 
 
 def main():
