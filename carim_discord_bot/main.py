@@ -6,7 +6,8 @@ import discord
 
 client = discord.Client()
 log = None
-message_parser = argparse.ArgumentParser()
+message_parser = argparse.ArgumentParser(add_help=False)
+message_parser.add_argument('--help', dest='help', action='store_true')
 message_parser.add_argument('--hello', dest='hello', action='store_true')
 
 
@@ -22,7 +23,9 @@ async def on_message(message):
 
     if message.content.startswith('--'):
         args = shlex.split(message.content, comments=True)
-        parsed_args = message_parser.parse_args(args)
+        parsed_args, _ = message_parser.parse_known_args(args)
+        if parsed_args.help:
+            await message.channel.send(message_parser.format_help())
         if parsed_args.hello:
             await message.channel.send(f'Hello, {message.author.display_name}!')
 
