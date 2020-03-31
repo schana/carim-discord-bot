@@ -1,0 +1,14 @@
+[Unit]
+Description=Carim discord bot
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -m carim_discord_bot.main -t /etc/carim/token.txt
+Type=simple
+RestartSec=5
+Restart=always
+StandardOutput=append:/var/log/carim.log
+StandardError=append:/var/log/carim_errors.log
+
+[Install]
+WantedBy=multi-user.target
