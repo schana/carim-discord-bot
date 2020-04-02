@@ -14,11 +14,12 @@ log = None
 message_parser = argparse.ArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things')
 message_parser.add_argument('--help', action='store_true', help='displays this usage information')
 message_parser.add_argument('--hello', action='store_true', help='says hello to the beloved user')
-message_parser.add_argument('--command', help='command to send to RCon')
+message_parser.add_argument('--players', action='store_true', help='command to send to RCon')
 message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
 message_parser.add_argument('--random', nargs='?', type=int, default=argparse.SUPPRESS,
                             help='generate a random number between 0 and RANDOM (default: 100)')
 future_queue = asyncio.Queue()
+event_queue = asyncio.Queue()
 
 
 @client.event
@@ -35,7 +36,7 @@ async def on_message(message):
         args = shlex.split(message.content, comments=True)
         parsed_args, _ = message_parser.parse_known_args(args)
         if parsed_args.help:
-            await message.channel.send(message_parser.format_help())
+            await message.channel.send(embed=build_embed('Help', message_parser.format_help()))
         if parsed_args.hello:
             word = random.choice(('Hello', 'Howdy', 'Greetings', 'Hiya', 'Hey'))
             await message.channel.send(f'{word}, {message.author.display_name}!')
@@ -44,9 +45,25 @@ async def on_message(message):
         if 'random' in parsed_args:
             if parsed_args.random is None:
                 parsed_args.random = 100
-            await message.channel.send(f'Your random number is: {random.randint(0, parsed_args.random)}')
-        if 'command' in parsed_args:
-            await future_queue.put((asyncio.get_running_loop().create_future(), parsed_args.command))
+            await message.channel.send(embed=build_embed('Random number', f'{random.randint(0, parsed_args.random)}'))
+        if parsed_args.players:
+            future = asyncio.get_running_loop().create_future()
+            await future_queue.put((future, 'players'))
+            result = await future
+            await message.channel.send(embed=build_embed('Players', f'RCon result {result}'))
+
+
+def build_embed(title, message):
+    embed = discord.Embed(title=title, description=message)
+    return embed
+
+
+async def process_rcon_events(queue, publish_channel_id):
+    while True:
+        event = await queue.get()
+        log.info(f'got from event_queue {event}')
+        channel = client.get_channel(publish_channel_id)
+        await channel.send(embed=build_embed('RCon event', event))
 
 
 def main():
@@ -69,10 +86,12 @@ def main():
     ip = config.get('rcon_ip')
     port = config.get('rcon_port')
     password = config.get('rcon_password')
+    publish_channel_id = config.get('rcon_publish_channel')
 
     loop = asyncio.get_event_loop()
     loop.create_task(client.start(token))
-    loop.create_task(rcon.start(future_queue, ip, port, password))
+    loop.create_task(process_rcon_events(event_queue, publish_channel_id))
+    loop.create_task(rcon.start(future_queue, event_queue, ip, port, password))
     loop.run_forever()
 
 

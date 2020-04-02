@@ -2,5 +2,6 @@
   "token": "123abc",
   "rcon_ip": "127.0.0.1",
   "rcon_port": 2302,
-  "rcon_password": "abc123"
+  "rcon_password": "abc123",
+  "rcon_publish_channel": 123
 }
