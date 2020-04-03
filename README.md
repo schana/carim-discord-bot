@@ -17,6 +17,7 @@ admin arguments:
                     is blank, list the available commands
                     COMMAND must be enclosed by quotes ("")
                     if it contains spaces
+--kill              kills the bot
 ```
 
 Example:

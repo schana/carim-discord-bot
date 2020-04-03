@@ -4,6 +4,7 @@ import json
 import logging
 import random
 import shlex
+import sys
 
 import discord
 
@@ -18,6 +19,7 @@ message_parser.add_argument('--random', nargs='?', type=int, default=argparse.SU
                             help='generate a random number between 0 and RANDOM (default: 100)')
 message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
 message_parser.add_argument('--command', nargs='?', type=str, help=argparse.SUPPRESS, default=argparse.SUPPRESS)
+message_parser.add_argument('--kill', action='store_true', help=argparse.SUPPRESS)
 future_queue = asyncio.Queue()
 event_queue = asyncio.Queue()
 admin_channels = []
@@ -60,6 +62,8 @@ async def on_message(message):
                     await message.channel.send(embed=build_embed(command, f'{str(result)}'))
                 except asyncio.CancelledError:
                     await message.channel.send(embed=build_embed(command, f'query timed out'))
+            if parsed_args.kill:
+                sys.exit(0)
 
 
 def build_embed(title, message):
