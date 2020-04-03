@@ -45,6 +45,9 @@ class Packet:
         checksum = zlib.crc32(bytes([H_END]) + data)
         return checksum
 
+    def __str__(self):
+        return str(self.payload)
+
 
 class Payload:
     @staticmethod
@@ -61,6 +64,9 @@ class Payload:
     def generate(self):
         raise NotImplementedError
 
+    def __str__(self):
+        raise NotImplementedError
+
 
 class Login(Payload):
     def __init__(self, password=None, success=False):
@@ -75,6 +81,9 @@ class Login(Payload):
     def generate(self):
         return struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT, LOGIN) + bytes(self.password, encoding='ascii')
 
+    def __str__(self):
+        return f'Login {self.success}'
+
 
 class Command(Payload):
     def __init__(self, sequence_number, data=None, command=''):
@@ -85,12 +94,15 @@ class Command(Payload):
     @staticmethod
     def parse(data):
         sequence_number = struct.unpack_from(FORMAT_PREFIX + SEQUENCE_NUMBER_FORMAT, data)[0]
-        return Command(sequence_number, data=data[1:])
+        return Command(sequence_number, data=str(data[1:], encoding='ascii'))
 
     def generate(self):
         packet = struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, COMMAND, self.sequence_number)
         packet += bytes(self.command, encoding='ascii')
         return packet
+
+    def __str__(self):
+        return f'Command\n{self.data}'
 
 
 class Message(Payload):
@@ -105,3 +117,6 @@ class Message(Payload):
 
     def generate(self):
         return struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, MESSAGE, self.sequence_number)
+
+    def __str__(self):
+        return f'Message\n{self.message}'

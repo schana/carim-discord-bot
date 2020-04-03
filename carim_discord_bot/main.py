@@ -14,12 +14,13 @@ log = None
 message_parser = argparse.ArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things')
 message_parser.add_argument('--help', action='store_true', help='displays this usage information')
 message_parser.add_argument('--hello', action='store_true', help='says hello to the beloved user')
-message_parser.add_argument('--players', action='store_true', help='command to send to RCon')
-message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
 message_parser.add_argument('--random', nargs='?', type=int, default=argparse.SUPPRESS,
                             help='generate a random number between 0 and RANDOM (default: 100)')
+message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
+message_parser.add_argument('--command', nargs='?', type=str, help=argparse.SUPPRESS, default=argparse.SUPPRESS)
 future_queue = asyncio.Queue()
 event_queue = asyncio.Queue()
+admin_channels = []
 
 
 @client.event
@@ -46,11 +47,19 @@ async def on_message(message):
             if parsed_args.random is None:
                 parsed_args.random = 100
             await message.channel.send(embed=build_embed('Random number', f'{random.randint(0, parsed_args.random)}'))
-        if parsed_args.players:
-            future = asyncio.get_running_loop().create_future()
-            await future_queue.put((future, 'players'))
-            result = await future
-            await message.channel.send(embed=build_embed('Players', f'RCon result {result}'))
+        if message.channel.id in admin_channels:
+            if 'command' in parsed_args:
+                if parsed_args.command is None:
+                    command = 'commands'
+                else:
+                    command = parsed_args.command
+                future = asyncio.get_running_loop().create_future()
+                await future_queue.put((future, command))
+                try:
+                    result = await future
+                    await message.channel.send(embed=build_embed(command, f'{str(result)}'))
+                except asyncio.CancelledError:
+                    await message.channel.send(embed=build_embed(command, f'query timed out'))
 
 
 def build_embed(title, message):
@@ -63,7 +72,27 @@ async def process_rcon_events(queue, publish_channel_id):
         event = await queue.get()
         log.info(f'got from event_queue {event}')
         channel = client.get_channel(publish_channel_id)
-        await channel.send(embed=build_embed('RCon event', event))
+        await channel.send(embed=discord.Embed(title=event))
+
+
+async def update_player_count(channel_id):
+    await asyncio.sleep(4)
+    while True:
+        future = asyncio.get_running_loop().create_future()
+        await future_queue.put((future, 'players'))
+        try:
+            result = await future
+            last_line: str = result.split('\n')[-1]
+            count_players = last_line.strip('()').split()[0]
+            try:
+                count_players = int(count_players)
+                channel: discord.TextChannel = client.get_channel(channel_id)
+                await channel.edit(name=f'{count_players} player{"s" if count_players != 1 else ""} online')
+            except ValueError:
+                log.warning('invalid data from player count')
+        except asyncio.CancelledError:
+            log.warning('update player count query timed out')
+        await asyncio.sleep(60 * 5)
 
 
 def main():
@@ -87,11 +116,15 @@ def main():
     port = config.get('rcon_port')
     password = config.get('rcon_password')
     publish_channel_id = config.get('rcon_publish_channel')
+    global admin_channels
+    admin_channels = config.get('rcon_admin_channels')
+    count_channel_id = config.get('rcon_count_channel')
 
     loop = asyncio.get_event_loop()
     loop.create_task(client.start(token))
     loop.create_task(process_rcon_events(event_queue, publish_channel_id))
     loop.create_task(service.start(future_queue, event_queue, ip, port, password))
+    loop.create_task(update_player_count(count_channel_id))
     loop.run_forever()
 
 
