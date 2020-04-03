@@ -7,7 +7,7 @@ import shlex
 
 import discord
 
-from carim_discord_bot import rcon
+from carim_discord_bot.rcon import service
 
 client = discord.Client()
 log = None
@@ -91,7 +91,7 @@ def main():
     loop = asyncio.get_event_loop()
     loop.create_task(client.start(token))
     loop.create_task(process_rcon_events(event_queue, publish_channel_id))
-    loop.create_task(rcon.start(future_queue, event_queue, ip, port, password))
+    loop.create_task(service.start(future_queue, event_queue, ip, port, password))
     loop.run_forever()
 
 
