@@ -12,9 +12,8 @@ def process_packet(packet, event_queue: asyncio.Queue):
     if isinstance(packet.payload, protocol.Login):
         log.info(f'login was {"" if packet.payload.success else "not "}successful')
     else:
-        manager.incoming(packet.payload.sequence_number, packet)
         if isinstance(packet.payload, protocol.Command):
-            pass
+            asyncio.get_event_loop().create_task(manager.incoming(packet.payload.sequence_number, packet))
         elif isinstance(packet.payload, protocol.Message):
             message = packet.payload.message
             log.debug(f'message: {message}')
@@ -27,8 +26,10 @@ def process_packet(packet, event_queue: asyncio.Queue):
                 else:
                     name = ' '.join(parts[2:-2])
                 login_message = f'{name} {status}'
-                log.info(login_message)
+                log.info(f'login event {login_message}')
                 asyncio.get_event_loop().create_task(put_in_queue(event_queue, login_message))
+            elif len(message) > 0:
+                asyncio.get_event_loop().create_task(put_in_queue(event_queue, message))
             return generate_ack(packet.payload.sequence_number)
     return None
 
@@ -85,7 +86,7 @@ async def process_futures(future_queue, rcon_protocol):
         elif command.split()[0] in VALID_COMMANDS:
             packet = protocol.Packet(protocol.Command(manager.get_next_sequence_number(), command=command))
             command_future = asyncio.get_running_loop().create_future()
-            manager.register(packet.payload.sequence_number, command_future)
+            await manager.register(packet.payload.sequence_number, command_future)
             rcon_protocol.send_rcon_datagram(packet.generate())
             try:
                 await command_future
@@ -122,7 +123,7 @@ async def keep_alive(factory, ip, port):
             await asyncio.sleep(40)
             packet = generate_keep_alive()
             future = asyncio.get_running_loop().create_future()
-            manager.register(packet.payload.sequence_number, future)
+            await manager.register(packet.payload.sequence_number, future)
             rcon_protocol.send_rcon_datagram(packet.generate())
             try:
                 await future

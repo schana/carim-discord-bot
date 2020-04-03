@@ -1,39 +1,33 @@
 import asyncio
 import logging
 
-things = dict()
 log = logging.getLogger(__name__)
+tasks = asyncio.Queue(1)
 
 
 def get_next_sequence_number():
-    if len(things) > 0:
-        number = max(*things.keys()) + 1
-    else:
-        number = 0
-    return number
+    return 0
 
 
-def register(key, future: asyncio.Future, timeout=10):
-    log.debug(f'register {key}')
-    things[key] = future
-    log.debug(f'keys {sorted(things.keys())}')
+async def register(key, future: asyncio.Future, timeout=10):
+    log.debug(f'register key {key}')
+    await tasks.put(future)
     loop = asyncio.get_event_loop()
     loop.create_task(wait_for_timeout(key, future, timeout))
 
 
-def incoming(key, packet):
-    log.debug(f'incoming {key} {packet}')
-    future = things.pop(key, None)
-    if future is not None:
+async def incoming(key, packet):
+    log.debug(f'incoming {packet}, key {key}')
+    if tasks.full():
+        future = await tasks.get()
         future.set_result(packet)
-    log.debug(f'keys {sorted(things.keys())}')
 
 
 async def wait_for_timeout(key, future, timeout):
-    log.debug(f'waiting for {key}')
-    await asyncio.sleep(timeout)
-    log.debug(f'done waiting for {key}')
-    if not future.done():
-        log.debug(f'timeout {key}')
-        things.pop(key, None)
-        future.cancel()
+    log.debug(f'waiting for key {key}')
+    try:
+        await asyncio.wait_for(future, timeout)
+    except asyncio.TimeoutError:
+        log.debug(f'timeout waiting for key {key}')
+        if tasks.full():
+            await tasks.get()

@@ -102,7 +102,8 @@ class Command(Payload):
         return packet
 
     def __str__(self):
-        return f'Command\n{self.data}'
+        single_line = self.data.replace('\n', '|')
+        return f'Command <{single_line}>'
 
 
 class Message(Payload):
@@ -119,4 +120,5 @@ class Message(Payload):
         return struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, MESSAGE, self.sequence_number)
 
     def __str__(self):
-        return f'Message\n{self.message}'
+        single_line = self.message.replace('\n', '|')
+        return f'Message <{single_line}>'
