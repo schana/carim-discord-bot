@@ -1,6 +1,35 @@
 # carim-discord-bot
 
-Set up a google cloud instance, and then
+A simple Discord bot that responds to a few basic commands
+that also has a RCon interface for BattlEye servers.
+
+```
+usage: [--help] [--hello] [--random [RANDOM]]
+
+optional arguments:
+--help              displays this usage information
+--hello             says hello to the beloved user
+--random [RANDOM]   generate a random number between 0 and
+                    RANDOM (default: 100)
+
+admin arguments:
+--command [COMMAND] sends COMMAND to RCon server; if COMMAND
+                    is blank, list the available commands
+                    COMMAND must be enclosed by quotes ("")
+                    if it contains spaces
+```
+
+Example:
+```
+--command "say -1 Hello everybody!"
+
+# this sends a message to everybody on the server
+```
+
+
+## Setup
+
+Instructions for Debian
 ```shell script
 sudo apt install git
 sudo apt install python3-pip
@@ -10,17 +39,28 @@ cd carim-discord-bot
 sudo python3 setup.py install
 
 sudo mkdir /etc/carim
-sudo nano /etc/carim/token.txt
-# copy in your discord token
+sudo cp carim.json /etc/carim
+# edit /etc/carim/carim.json
+# token:                your discord bot token
+# rcon_ip:              ip address of your rcon server
+# rcon_port:            port of your rcon server
+# rcon_password:        rcon password
+# rcon_publish_channel: discord channel id that events
+#                       should be published to
+# rcon_admin_channels:  list of discord channel ids that
+#                       can issue admin commands to the bot
+# rcon_count_channel:   channel id that bot will update with
+#                       the current number of players online
+#                       (I use a category for this)
 sudo chmod 755 /etc/carim
-sudo chmod 640 /etc/carim/token.txt
+sudo chmod 640 /etc/carim/carim.json
 
 sudo cp carim.service /etc/systemd/system/
 sudo systemctl enable carim.service
 sudo systemctl start carim.service
 ```
 
-When you make updates
+To install updates
 ```shell script
 cd carim-discord-bot
 git reset HEAD --hard
