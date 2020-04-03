@@ -4,6 +4,8 @@
   "rcon_port": 2302,
   "rcon_password": "abc123",
   "rcon_publish_channel": 123,
-  "rcon_admin_channel": 345,
+  "rcon_admin_channels": [
+    345
+  ],
   "rcon_count_channel": 456
 }
