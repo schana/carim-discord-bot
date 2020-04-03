@@ -3,7 +3,7 @@ Description=Carim discord bot
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 -m carim_discord_bot.main -t /etc/carim/token.txt
+ExecStart=/usr/bin/python3 -m carim_discord_bot.main -c /etc/carim/carim.json
 Type=simple
 RestartSec=5
 Restart=always
