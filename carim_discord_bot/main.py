@@ -23,7 +23,9 @@ message_parser.add_argument('--command', nargs='?', type=str, help=argparse.SUPP
 message_parser.add_argument('--kill', action='store_true', help=argparse.SUPPRESS)
 future_queue = asyncio.Queue()
 event_queue = asyncio.Queue()
+chat_queue = asyncio.Queue()
 admin_channels = []
+chat_channel_id = 0
 
 
 @client.event
@@ -34,6 +36,12 @@ async def on_ready():
 @client.event
 async def on_message(message):
     if message.author == client.user:
+        return
+
+    if message.channel.id == chat_channel_id:
+        chat_message = f'Discord> {message.author.display_name}: {message.content}'
+        future = asyncio.get_running_loop().create_future()
+        await future_queue.put((future, f'say -1 {chat_message}'))
         return
 
     if message.content.startswith('--'):
@@ -95,6 +103,16 @@ async def process_rcon_events(publish_channel_id):
         await channel.send(embed=discord.Embed(**embed_args))
 
 
+async def process_rcon_chats():
+    while True:
+        chat = await chat_queue.get()
+        embed_args = dict(description=chat)
+        log.info(f'got from chat_queue {chat}')
+        await client.wait_until_ready()
+        channel = client.get_channel(chat_channel_id)
+        await channel.send(embed=discord.Embed(**embed_args))
+
+
 async def update_player_count(channel_id):
     while True:
         sleep_for = 60 * 5
@@ -145,8 +163,9 @@ def main():
     port = config.get('rcon_port')
     password = config.get('rcon_password')
     publish_channel_id = config.get('rcon_publish_channel')
-    global admin_channels
+    global admin_channels, chat_channel_id
     admin_channels = config.get('rcon_admin_channels')
+    chat_channel_id = config.get('rcon_chat_channel')
     count_channel_id = config.get('rcon_count_channel')
 
     loop = asyncio.get_event_loop()
@@ -154,9 +173,10 @@ def main():
     loop.run_until_complete(client.login(token))
     loop.create_task(client.connect())
 
-    loop.run_until_complete(service.start(future_queue, event_queue, ip, port, password))
+    loop.run_until_complete(service.start(future_queue, event_queue, chat_queue, ip, port, password))
 
     loop.create_task(process_rcon_events(publish_channel_id))
+    loop.create_task(process_rcon_chats())
     loop.create_task(update_player_count(count_channel_id))
     loop.run_forever()
 

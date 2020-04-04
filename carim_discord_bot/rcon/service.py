@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 VALID_COMMANDS = ('players', 'admins', 'kick', 'bans', 'ban', 'removeBan', 'say', 'addBan')
 
 
-def process_packet(packet, event_queue: asyncio.Queue):
+def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue):
     if isinstance(packet.payload, protocol.Login):
         log.info(f'login was {"" if packet.payload.success else "not "}successful')
     else:
@@ -27,8 +27,12 @@ def process_packet(packet, event_queue: asyncio.Queue):
                     name = ' '.join(parts[2:-2])
                 login_message = f'{name} {status}'
                 log.info(f'login event {login_message}')
-                asyncio.get_event_loop().create_task(put_in_queue(event_queue, login_message))
-            elif len(message) > 0:
+                asyncio.get_event_loop().create_task(put_in_queue(chat_queue, login_message))
+            chat = re.compile(r'^\(Global\).*:.*')
+            if chat.match(message):
+                _, _, content = message.partition(' ')
+                asyncio.get_event_loop().create_task(put_in_queue(chat_queue, content))
+            if len(message) > 0:
                 asyncio.get_event_loop().create_task(put_in_queue(event_queue, message))
             return generate_ack(packet.payload.sequence_number)
     return None
@@ -51,11 +55,12 @@ def generate_keep_alive():
 
 
 class RConProtocol(asyncio.DatagramProtocol):
-    def __init__(self, future_queue, event_queue, password):
+    def __init__(self, future_queue, event_queue, chat_queue, password):
         self.transport = None
         self.password = password
         self.future_queue = future_queue
         self.event_queue = event_queue
+        self.chat_queue = chat_queue
         super().__init__()
 
     def connection_made(self, transport: asyncio.DatagramTransport):
@@ -67,7 +72,7 @@ class RConProtocol(asyncio.DatagramProtocol):
         log.debug(f'received {data}')
         packet = protocol.Packet.parse(data)
         if packet is not None:
-            response = process_packet(packet, self.event_queue)
+            response = process_packet(packet, self.event_queue, self.chat_queue)
             if response is not None:
                 log.debug(f'responding {response}')
                 self.send_rcon_datagram(response)
@@ -98,18 +103,19 @@ async def process_futures(future_queue, rcon_protocol):
 
 
 class ProtocolFactory:
-    def __init__(self, future_queue, event_queue, password):
+    def __init__(self, future_queue, event_queue, chat_queue, password):
         self.future_queue = future_queue
         self.event_queue = event_queue
+        self.chat_queue = chat_queue
         self.password = password
 
     def get(self) -> RConProtocol:
-        return RConProtocol(self.future_queue, self.event_queue, self.password)
+        return RConProtocol(self.future_queue, self.event_queue, self.chat_queue, self.password)
 
 
-async def start(future_queue, event_queue, ip, port, password):
+async def start(future_queue, event_queue, chat_queue, ip, port, password):
     loop = asyncio.get_running_loop()
-    factory = ProtocolFactory(future_queue, event_queue, password)
+    factory = ProtocolFactory(future_queue, event_queue, chat_queue, password)
     loop.create_task(keep_alive(factory, ip, port))
 
 

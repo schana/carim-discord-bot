@@ -1,7 +1,8 @@
 # carim-discord-bot
 
 A simple Discord bot that responds to a few basic commands
-that also has a RCon interface for BattlEye servers.
+that also has a RCon interface for BattlEye servers. It also
+has the capability to link a discord channel to the server chat.
 
 ```
 usage: [--help] [--hello] [--random [RANDOM]]
@@ -50,6 +51,8 @@ sudo cp carim.json /etc/carim
 #                       should be published to
 # rcon_admin_channels:  list of discord channel ids that
 #                       can issue admin commands to the bot
+# rcon_chat_channel:    channel id for linking discord and
+#                       server-side chats
 # rcon_count_channel:   channel id that bot will update with
 #                       the current number of players online
 #                       (I use a category for this)
