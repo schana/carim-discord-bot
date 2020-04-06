@@ -9,7 +9,7 @@ import sys
 
 import discord
 
-from carim_discord_bot.rcon import service, manager, protocol
+from carim_discord_bot.rcon import service, registrar, protocol
 
 client = discord.Client()
 log = None
@@ -138,6 +138,12 @@ async def update_player_count(channel_id):
             log.warning('invalid data from player count')
 
 
+async def log_queue(name, queue: asyncio.Queue):
+    while True:
+        item = await queue.get()
+        log.info(f'{name} {item}')
+
+
 def main():
     parser = argparse.ArgumentParser(description='carim discord bot')
     parser.add_argument('-c', dest='config', required=True, help='path to config file')
@@ -151,20 +157,25 @@ def main():
     global log
     log = logging.getLogger(__name__)
     log.setLevel(log_level)
-    manager.log.setLevel(log_level)
+    registrar.log.setLevel(log_level)
     protocol.log.setLevel(log_level)
     service.log.setLevel(log_level)
 
     with open(args.config) as f:
         config = json.load(f)
 
-    token = config.get('token')
-    ip = config.get('rcon_ip')
-    port = config.get('rcon_port')
-    password = config.get('rcon_password')
-    publish_channel_id = config.get('rcon_publish_channel')
+    token = config['token']
+    ip = config['rcon_ip']
+    port = config['rcon_port']
+    password = config['rcon_password']
+    publish_channel_id = config.get('rcon_admin_log_channel')
+    if publish_channel_id is None:
+        publish_channel_id = config.get('rcon_publish_channel')
+        if publish_channel_id is not None:
+            log.warning('carim.json rcon_publish_channel is deprecated, use rcon_admin_log_channel instead')
+
     global admin_channels, chat_channel_id
-    admin_channels = config.get('rcon_admin_channels')
+    admin_channels = config.get('rcon_admin_channels', list())
     chat_channel_id = config.get('rcon_chat_channel')
     count_channel_id = config.get('rcon_count_channel')
 
@@ -175,9 +186,19 @@ def main():
 
     loop.run_until_complete(service.start(future_queue, event_queue, chat_queue, ip, port, password))
 
-    loop.create_task(process_rcon_events(publish_channel_id))
-    loop.create_task(process_rcon_chats())
-    loop.create_task(update_player_count(count_channel_id))
+    if publish_channel_id is not None:
+        loop.create_task(process_rcon_events(publish_channel_id))
+    else:
+        loop.create_task(log_queue('rcon admin', event_queue))
+
+    if chat_channel_id is not None:
+        loop.create_task(process_rcon_chats())
+    else:
+        loop.create_task(log_queue('chat', chat_queue))
+
+    if count_channel_id is not None:
+        loop.create_task(update_player_count(count_channel_id))
+
     loop.run_forever()
 
 

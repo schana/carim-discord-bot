@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 
-from carim_discord_bot.rcon import protocol, manager
+from carim_discord_bot.rcon import protocol, registrar
 
 log = logging.getLogger(__name__)
 VALID_COMMANDS = ('players', 'admins', 'kick', 'bans', 'ban', 'removeBan', 'say', 'addBan')
@@ -13,7 +13,7 @@ def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue
         log.info(f'login was {"" if packet.payload.success else "not "}successful')
     else:
         if isinstance(packet.payload, protocol.Command):
-            asyncio.get_event_loop().create_task(manager.incoming(packet.payload.sequence_number, packet))
+            asyncio.get_event_loop().create_task(registrar.incoming(packet.payload.sequence_number, packet))
         elif isinstance(packet.payload, protocol.Message):
             message = packet.payload.message
             log.debug(f'message: {message}')
@@ -48,10 +48,6 @@ def generate_login(password):
 
 def generate_ack(received_sequence_number):
     return protocol.Packet(protocol.Message(received_sequence_number)).generate()
-
-
-def generate_keep_alive():
-    return protocol.Packet(protocol.Command(manager.get_next_sequence_number()))
 
 
 class RConProtocol(asyncio.DatagramProtocol):
@@ -89,9 +85,10 @@ async def process_futures(future_queue, rcon_protocol):
         if command == 'commands':
             future.set_result(VALID_COMMANDS)
         elif command.split()[0] in VALID_COMMANDS:
-            packet = protocol.Packet(protocol.Command(manager.get_next_sequence_number(), command=command))
+            seq_number = await registrar.get_next_sequence_number()
+            packet = protocol.Packet(protocol.Command(seq_number, command=command))
             command_future = asyncio.get_running_loop().create_future()
-            await manager.register(packet.payload.sequence_number, command_future)
+            await registrar.register(packet.payload.sequence_number, command_future)
             rcon_protocol.send_rcon_datagram(packet.generate())
             try:
                 await command_future
@@ -122,14 +119,16 @@ async def start(future_queue, event_queue, chat_queue, ip, port, password):
 async def keep_alive(factory, ip, port):
     loop = asyncio.get_running_loop()
     while True:
+        await registrar.reset()
         transport, rcon_protocol = await loop.create_datagram_endpoint(factory.get, remote_addr=(ip, port))
         task = loop.create_task(process_futures(factory.future_queue, rcon_protocol))
         rcon_protocol: RConProtocol = rcon_protocol
         while True:
-            await asyncio.sleep(40)
-            packet = generate_keep_alive()
+            await asyncio.sleep(30)
+            seq_number = await registrar.get_next_sequence_number()
+            packet = protocol.Packet(protocol.Command(seq_number))
             future = asyncio.get_running_loop().create_future()
-            await manager.register(packet.payload.sequence_number, future)
+            await registrar.register(packet.payload.sequence_number, future)
             rcon_protocol.send_rcon_datagram(packet.generate())
             try:
                 await future
