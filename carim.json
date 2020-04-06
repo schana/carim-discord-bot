@@ -9,6 +9,14 @@
     345
   ],
   "rcon_count_channel": 456,
+  "update_player_count_interval": 300,
+  "rcon_keep_alive_interval": 30,
+  "log_events_in_discord": {
+    "player_count_updates": true,
+    "rcon_messages": true,
+    "rcon_keep_alive": false,
+    "include_timestamp": true
+  },
   "descriptions": {
     "required": {
       "token": "Discord token for your bot that you can find at https://discordapp.com/developers/applications",

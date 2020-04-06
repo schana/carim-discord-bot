@@ -2,6 +2,7 @@ import asyncio
 import logging
 import re
 
+from carim_discord_bot import config
 from carim_discord_bot.rcon import protocol, registrar
 
 log = logging.getLogger(__name__)
@@ -51,9 +52,8 @@ def generate_ack(received_sequence_number):
 
 
 class RConProtocol(asyncio.DatagramProtocol):
-    def __init__(self, future_queue, event_queue, chat_queue, password):
+    def __init__(self, future_queue, event_queue, chat_queue):
         self.transport = None
-        self.password = password
         self.future_queue = future_queue
         self.event_queue = event_queue
         self.chat_queue = chat_queue
@@ -61,7 +61,7 @@ class RConProtocol(asyncio.DatagramProtocol):
 
     def connection_made(self, transport: asyncio.DatagramTransport):
         self.transport = transport
-        data = generate_login(self.password)
+        data = generate_login(config.get().password)
         self.send_rcon_datagram(data)
 
     def datagram_received(self, data, addr):
@@ -100,31 +100,31 @@ async def process_futures(future_queue, rcon_protocol):
 
 
 class ProtocolFactory:
-    def __init__(self, future_queue, event_queue, chat_queue, password):
+    def __init__(self, future_queue, event_queue, chat_queue):
         self.future_queue = future_queue
         self.event_queue = event_queue
         self.chat_queue = chat_queue
-        self.password = password
 
     def get(self) -> RConProtocol:
-        return RConProtocol(self.future_queue, self.event_queue, self.chat_queue, self.password)
+        return RConProtocol(self.future_queue, self.event_queue, self.chat_queue)
 
 
-async def start(future_queue, event_queue, chat_queue, ip, port, password):
+async def start(future_queue, event_queue, chat_queue):
     loop = asyncio.get_running_loop()
-    factory = ProtocolFactory(future_queue, event_queue, chat_queue, password)
-    loop.create_task(keep_alive(factory, ip, port))
+    factory = ProtocolFactory(future_queue, event_queue, chat_queue)
+    loop.create_task(keep_alive(factory))
 
 
-async def keep_alive(factory, ip, port):
+async def keep_alive(factory):
     loop = asyncio.get_running_loop()
     while True:
         await registrar.reset()
-        transport, rcon_protocol = await loop.create_datagram_endpoint(factory.get, remote_addr=(ip, port))
+        transport, rcon_protocol = await loop.create_datagram_endpoint(factory.get,
+                                                                       remote_addr=(config.get().ip, config.get().port))
         task = loop.create_task(process_futures(factory.future_queue, rcon_protocol))
         rcon_protocol: RConProtocol = rcon_protocol
         while True:
-            await asyncio.sleep(30)
+            await asyncio.sleep(config.get().rcon_keep_alive_interval)
             seq_number = await registrar.get_next_sequence_number()
             packet = protocol.Packet(protocol.Command(seq_number))
             future = asyncio.get_running_loop().create_future()
@@ -132,6 +132,8 @@ async def keep_alive(factory, ip, port):
             rcon_protocol.send_rcon_datagram(packet.generate())
             try:
                 await future
+                if config.get().log_rcon_keep_alive:
+                    asyncio.get_event_loop().create_task(put_in_queue(factory.event_queue, 'keep alive'))
             except asyncio.CancelledError:
                 log.warning('keep alive timed out')
                 await factory.event_queue.put('keep alive timed out')
