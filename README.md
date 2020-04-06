@@ -1,8 +1,8 @@
 # carim-discord-bot
 
 A simple Discord bot that responds to a few basic commands
-that also has a RCon interface for BattlEye servers. It also
-has the capability to link a discord channel to the server chat.
+and has a RCon interface for BattlEye servers. It can also
+establish cross chat between Discord and inside the game.
 
 ```
 usage: [--help] [--hello] [--random [RANDOM]]
@@ -21,17 +21,20 @@ admin arguments:
 --kill              kills the bot
 ```
 
-Example:
+Examples:
 ```
 --command "say -1 Hello everybody!"
-
 # this sends a message to everybody on the server
+# notice the quotes around the command
+
+--command players
+# gets a list of currently connected players
 ```
 
 
 ## Setup
 
-Instructions for Debian
+Instructions for Debian Buster
 ```shell script
 sudo apt install git
 sudo apt install python3-pip
@@ -42,20 +45,7 @@ sudo python3 setup.py install
 
 sudo mkdir /etc/carim
 sudo cp carim.json /etc/carim
-# edit /etc/carim/carim.json
-# token:                your discord bot token
-# rcon_ip:              ip address of your rcon server
-# rcon_port:            port of your rcon server
-# rcon_password:        rcon password
-# rcon_publish_channel: discord channel id that events
-#                       should be published to
-# rcon_admin_channels:  list of discord channel ids that
-#                       can issue admin commands to the bot
-# rcon_chat_channel:    channel id for linking discord and
-#                       server-side chats
-# rcon_count_channel:   channel id that bot will update with
-#                       the current number of players online
-#                       (I use a category for this)
+sudo nano /etc/carim/carim.json # insert your values
 sudo chmod 755 /etc/carim
 sudo chmod 640 /etc/carim/carim.json
 
@@ -68,6 +58,7 @@ To install updates
 ```shell script
 cd carim-discord-bot
 git reset HEAD --hard
+git pull
 sudo python3 setup.py install
 sudo systemctl restart carim.service
 ```

@@ -144,6 +144,11 @@ async def log_queue(name, queue: asyncio.Queue):
         log.info(f'{name} {item}')
 
 
+def loop_exception_handler(loop, context):
+    loop.default_exception_handler(context)
+    loop.stop()
+
+
 def main():
     parser = argparse.ArgumentParser(description='carim discord bot')
     parser.add_argument('-c', dest='config', required=True, help='path to config file')
@@ -180,6 +185,7 @@ def main():
     count_channel_id = config.get('rcon_count_channel')
 
     loop = asyncio.get_event_loop()
+    loop.set_exception_handler(loop_exception_handler)
 
     loop.run_until_complete(client.login(token))
     loop.create_task(client.connect())

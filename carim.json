@@ -10,14 +10,18 @@
   ],
   "rcon_count_channel": 456,
   "descriptions": {
-    "token": "Discord token for your bot that you can find at https://discordapp.com/developers/applications",
-    "rcon_ip": "IP address of your DayZ server",
-    "rcon_port": "RCon port for your DayZ server (may be different from the game port)",
-    "rcon_password": "RCon password, found in the BattlEye profile directory in your server files",
-    "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
-    "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
-    "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands like ban. Type --command to see a full list",
-    "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count",
+    "required": {
+      "token": "Discord token for your bot that you can find at https://discordapp.com/developers/applications",
+      "rcon_ip": "IP address of your DayZ server",
+      "rcon_port": "RCon port for your DayZ server (may be different from the game port)",
+      "rcon_password": "RCon password, found in the BattlEye profile directory in your server files"
+    },
+    "optional": {
+      "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
+      "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
+      "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands like ban",
+      "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count"
+    },
     "deprecated": {
       "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"
     }
