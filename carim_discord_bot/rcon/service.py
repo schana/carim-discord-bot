@@ -28,7 +28,8 @@ def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue
                     name = ' '.join(parts[2:-2])
                 login_message = f'{name} {status}'
                 log.info(f'login event {login_message}')
-                asyncio.get_event_loop().create_task(put_in_queue(chat_queue, login_message))
+                if config.get().log_connect_disconnect_notices:
+                    asyncio.get_event_loop().create_task(put_in_queue(chat_queue, login_message))
             chat = re.compile(r'^\(Global\).*:.*')
             if chat.match(message):
                 _, _, content = message.partition(' ')

@@ -6,8 +6,9 @@ log = logging.getLogger(__name__)
 
 class Config:
     def __init__(self, token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id,
-                 count_channel_id, update_player_count_interval, rcon_keep_alive_interval, log_player_count_updates,
-                 log_rcon_messages, log_rcon_keep_alive, include_timestamp):
+                 count_channel_id, update_player_count_interval, rcon_keep_alive_interval,
+                 log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages, log_rcon_keep_alive,
+                 include_timestamp):
         self.token = token
         self.ip = ip
         self.port = port
@@ -18,6 +19,7 @@ class Config:
         self.count_channel_id = count_channel_id
         self.update_player_count_interval = update_player_count_interval
         self.rcon_keep_alive_interval = rcon_keep_alive_interval
+        self.log_connect_disconnect_notices = log_connect_disconnect_notices
         self.log_player_count_updates = log_player_count_updates
         self.log_rcon_messages = log_rcon_messages
         self.log_rcon_keep_alive = log_rcon_keep_alive
@@ -46,14 +48,15 @@ class Config:
 
         discord_logging_verbosity = config.get('log_events_in_discord', dict())
 
+        log_connect_disconnect_notices = discord_logging_verbosity.get('connect_disconnect_notices', True)
         log_player_count_updates = discord_logging_verbosity.get('player_count_updates', True)
         log_rcon_messages = discord_logging_verbosity.get('rcon_messages', True)
         log_rcon_keep_alive = discord_logging_verbosity.get('rcon_keep_alive', True)
         include_timestamp = discord_logging_verbosity.get('include_timestamp', True)
 
         return Config(token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id, count_channel_id,
-                      update_player_count_interval, rcon_keep_alive_interval, log_player_count_updates,
-                      log_rcon_messages, log_rcon_keep_alive, include_timestamp)
+                      update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
+                      log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp)
 
 
 _config: Config = None
