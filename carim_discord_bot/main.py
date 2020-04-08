@@ -176,7 +176,7 @@ def main():
     log_level = logging.INFO
 
     if 'config' not in args:
-        args.config = resource_filename(__name__, 'data/carim.json')
+        args.config = resource_filename(__name__, 'data/config.json')
     settings = config.Config.build_from(args.config)
     config.set(settings)
 
