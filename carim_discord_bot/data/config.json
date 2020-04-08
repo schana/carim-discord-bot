@@ -1,0 +1,22 @@
+{
+  "token": "",
+  "rcon_ip": "127.0.0.1",
+  "rcon_port": 2302,
+  "rcon_password": "",
+  "rcon_admin_log_channel": 0,
+  "rcon_chat_channel": 0,
+  "rcon_admin_channels": [
+    0
+  ],
+  "rcon_count_channel": 0,
+  "update_player_count_interval": 300,
+  "rcon_keep_alive_interval": 30,
+  "log_events_in_discord": {
+    "connect_disconnect_notices": true,
+    "player_count_updates": true,
+    "rcon_messages": true,
+    "rcon_keep_alive": false,
+    "include_timestamp": false
+  },
+  "debug": false
+}

@@ -8,7 +8,7 @@ class Config:
     def __init__(self, token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id,
                  count_channel_id, update_player_count_interval, rcon_keep_alive_interval,
                  log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages, log_rcon_keep_alive,
-                 include_timestamp):
+                 include_timestamp, debug):
         self.token = token
         self.ip = ip
         self.port = port
@@ -24,6 +24,7 @@ class Config:
         self.log_rcon_messages = log_rcon_messages
         self.log_rcon_keep_alive = log_rcon_keep_alive
         self.include_timestamp = include_timestamp
+        self.debug = debug
 
     @staticmethod
     def build_from(file_path):
@@ -54,9 +55,11 @@ class Config:
         log_rcon_keep_alive = discord_logging_verbosity.get('rcon_keep_alive', True)
         include_timestamp = discord_logging_verbosity.get('include_timestamp', True)
 
+        debug = config.get('debug', False)
+
         return Config(token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id, count_channel_id,
                       update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
-                      log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp)
+                      log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug)
 
 
 _config: Config = None

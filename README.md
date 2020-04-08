@@ -19,6 +19,7 @@ admin arguments:
                     COMMAND must be enclosed by quotes ("")
                     if it contains spaces
 --kill              kills the bot
+--version           prints the version of the bot
 ```
 
 Examples:
@@ -32,33 +33,15 @@ Examples:
 ```
 
 
-## Setup
+## Install
 
-Instructions for Debian Buster
-```shell script
-sudo apt install git
-sudo apt install python3-pip
+1. Install Python 3.6 or 3.7
+1. Run `pip3 install carim-discord-bot`
+1. Run `carim-bot --setup` and follow the instructions
 
-git clone https://github.com/schana/carim-discord-bot.git
-cd carim-discord-bot
-sudo python3 setup.py install
+## Update
 
-sudo mkdir /etc/carim
-sudo cp carim.json /etc/carim
-sudo nano /etc/carim/carim.json # insert your values
-sudo chmod 755 /etc/carim
-sudo chmod 640 /etc/carim/carim.json
-
-sudo cp carim.service /etc/systemd/system/
-sudo systemctl enable carim.service
-sudo systemctl start carim.service
-```
-
-To install updates
-```shell script
-cd carim-discord-bot
-git reset HEAD --hard
-git pull
-sudo python3 setup.py install
-sudo systemctl restart carim.service
-```
+1. Run `pip3 install carim-discord-bot`
+1. Run `carim-bot --setup configuration` to see if any options have changed
+1. Update your configuration file accordingly
+1. Restart the service if you have one

@@ -3,12 +3,12 @@ Description=Carim discord bot
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 -m carim_discord_bot.main -c /etc/carim/carim.json
+ExecStart=carim-bot
 Type=simple
 RestartSec=5
 Restart=always
 StandardOutput=append:/var/log/carim.log
-StandardError=append:/var/log/carim_errors.log
+StandardError=append:/var/log/carim.log
 
 [Install]
 WantedBy=multi-user.target

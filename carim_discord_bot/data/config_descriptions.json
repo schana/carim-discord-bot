@@ -1,0 +1,27 @@
+{
+  "required": {
+    "token": "Discord token for your bot that you can find at https://discordapp.com/developers/applications",
+    "rcon_ip": "IP address of your DayZ server",
+    "rcon_port": "RCon port for your DayZ server (may be different from the game port)",
+    "rcon_password": "RCon password, found in the BattlEye profile directory in your server files"
+  },
+  "optional": {
+    "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
+    "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
+    "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
+    "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count",
+    "update_player_count_interval": "Time, in seconds, between player count update queries",
+    "rcon_keep_alive_interval": "Time, in seconds, between RCon keep alive messages. The connection times out at around 45 seconds",
+    "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"
+  },
+  "log_events_in_discord": {
+    "connect_disconnect_notices": "Send connect and disconnect notices to chat channel",
+    "player_count_updates": "Send player count update notices to admin log channel",
+    "rcon_messages": "Send all RCon messages to admin log channel",
+    "rcon_keep_alive": "Send RCon keep alive status messages to admin log channel",
+    "include_timestamp": "Include timestamp on all messages from the bot"
+  },
+  "deprecated": {
+    "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"
+  }
+}
