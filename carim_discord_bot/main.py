@@ -7,6 +7,7 @@ import sys
 
 import discord
 
+import carim_discord_bot
 from carim_discord_bot import config, message_builder
 from carim_discord_bot.rcon import service, registrar, protocol
 
@@ -21,6 +22,7 @@ message_parser.add_argument('--random', nargs='?', type=int, default=argparse.SU
 message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
 message_parser.add_argument('--command', nargs='?', type=str, help=argparse.SUPPRESS, default=argparse.SUPPRESS)
 message_parser.add_argument('--kill', action='store_true', help=argparse.SUPPRESS)
+message_parser.add_argument('--version', action='store_true', help=argparse.SUPPRESS)
 future_queue = asyncio.Queue()
 event_queue = asyncio.Queue()
 chat_queue = asyncio.Queue()
@@ -80,6 +82,8 @@ async def process_admin_args(parsed_args, message):
             await message.channel.send(embed=message_builder.build_embed(command, f'query timed out'))
     if parsed_args.kill:
         sys.exit(0)
+    if parsed_args.version:
+        await message.channel.send(embed=message_builder.build_embed('version', carim_discord_bot.VERSION))
 
 
 async def process_rcon_events():
