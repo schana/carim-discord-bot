@@ -41,7 +41,7 @@ Examples:
 
 ## Update
 
-1. Run `pip3 install carim-discord-bot`
+1. Run `pip3 install carim-discord-bot -U`
 1. Run `carim-bot --setup configuration` to see if any options have changed
 1. Update your configuration file accordingly
 1. Restart the service if you have one
