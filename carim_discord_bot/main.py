@@ -18,14 +18,20 @@ client = discord.Client()
 log = None
 message_parser = argparse.ArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things',
                                          formatter_class=argparse.RawTextHelpFormatter)
-message_parser.add_argument('--help', action='store_true', help='displays this usage information')
-message_parser.add_argument('--hello', action='store_true', help='says hello to the beloved user')
-message_parser.add_argument('--random', nargs='?', type=int, default=argparse.SUPPRESS,
-                            help='generate a random number between 0 and RANDOM (default: 100)')
-message_parser.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
-message_parser.add_argument('--command', nargs='?', type=str, help=argparse.SUPPRESS, default=argparse.SUPPRESS)
-message_parser.add_argument('--kill', action='store_true', help=argparse.SUPPRESS)
-message_parser.add_argument('--version', action='store_true', help=argparse.SUPPRESS)
+command_group = message_parser.add_argument_group('commands')
+command_group.add_argument('--help', action='store_true', help='displays this usage information')
+command_group.add_argument('--hello', action='store_true', help='says hello to the beloved user')
+command_group.add_argument('--random', nargs='?', type=int, default=argparse.SUPPRESS, metavar='num',
+                           help='generate a random number between 0 and 100 or num if specified')
+command_group.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
+command_group.add_argument('--about', action='store_true', help='display some information about the bot')
+
+admin_group = message_parser.add_argument_group('admin commands')
+admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
+                         help='send command to the server, or list the available commands')
+admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
+admin_group.add_argument('--version', action='store_true', help='display the current version of the bot')
+
 future_queue = asyncio.Queue()
 event_queue = asyncio.Queue()
 chat_queue = asyncio.Queue()
@@ -55,7 +61,10 @@ async def on_message(message):
 
 async def process_message_args(parsed_args, message):
     if parsed_args.help:
-        await message.channel.send(embed=message_builder.build_embed('Help', message_parser.format_help()))
+        include_admin = message.channel.id in config.get().admin_channels
+        embed = message_builder.build_embed(f'{"Admin " if include_admin else ""}Help',
+                                            format_help(include_admin=include_admin))
+        await message.channel.send(embed=embed)
     if parsed_args.hello:
         word = random.choice(('Hello', 'Howdy', 'Greetings', 'Hiya', 'Hey'))
         await message.channel.send(f'{word}, {message.author.display_name}!')
@@ -65,7 +74,11 @@ async def process_message_args(parsed_args, message):
         if parsed_args.random is None:
             parsed_args.random = 100
         await message.channel.send(
-            embed=message_builder.build_embed('Random number', f'{random.randint(0, parsed_args.random)}'))
+            embed=message_builder.build_embed(f'Random number: {random.randint(0, parsed_args.random)}'))
+    if parsed_args.about:
+        await message.channel.send(embed=message_builder.build_embed(
+            'This bot is open source and can be built for any DayZ server\n'
+            'For more information, visit https://github.com/schana/carim-discord-bot'))
     if message.channel.id in config.get().admin_channels:
         await process_admin_args(parsed_args, message)
 
@@ -86,7 +99,28 @@ async def process_admin_args(parsed_args, message):
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:
-        await message.channel.send(embed=message_builder.build_embed('version', carim_discord_bot.VERSION))
+        await message.channel.send(embed=message_builder.build_embed(carim_discord_bot.VERSION))
+
+
+def format_help(include_admin=False):
+    formatter = message_parser._get_formatter()
+
+    formatter.add_text(message_parser.description)
+
+    if include_admin:
+        action_groups = [command_group, admin_group]
+    else:
+        action_groups = [command_group]
+
+    for action_group in action_groups:
+        formatter.start_section(action_group.title)
+        formatter.add_text(action_group.description)
+        formatter.add_arguments(action_group._group_actions)
+        formatter.end_section()
+
+    formatter.add_text(message_parser.epilog)
+
+    return formatter.format_help()
 
 
 async def process_rcon_events():
