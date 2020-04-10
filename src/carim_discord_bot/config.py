@@ -27,10 +27,7 @@ class Config:
         self.debug = debug
 
     @staticmethod
-    def build_from(file_path):
-        with open(file_path) as f:
-            config = json.load(f)
-
+    def build_from_dict(config):
         token = config['token']
         ip = config['rcon_ip']
         port = config['rcon_port']
@@ -60,6 +57,12 @@ class Config:
         return Config(token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id, count_channel_id,
                       update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
                       log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug)
+
+    @staticmethod
+    def build_from(file_path):
+        with open(file_path) as f:
+            config = json.load(f)
+        return Config.build_from_dict(config)
 
 
 _config: Config = None
