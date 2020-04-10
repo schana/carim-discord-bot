@@ -35,7 +35,7 @@ Examples:
 
 ## Install
 
-1. Install Python 3.6 or 3.7
+1. Install Python 3.7 or 3.8
 1. Run `pip3 install carim-discord-bot`
 1. Run `carim-bot --setup` and follow the instructions
 

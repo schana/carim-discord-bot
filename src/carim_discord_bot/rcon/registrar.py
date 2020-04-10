@@ -5,6 +5,7 @@ log = logging.getLogger(__name__)
 tasks = dict()
 _sequence_number = 0
 lock = asyncio.Lock()
+default_timeout = 10
 
 
 async def get_next_sequence_number():
@@ -23,12 +24,13 @@ async def reset():
         keys = list(tasks.keys())
         for key in keys:
             log.debug(f'cancelling {key}')
-            future = tasks.pop(key)
-            future.cancel()
+            future = tasks.pop(key, None)
+            if future is not None:
+                future.cancel()
         _sequence_number = 0
 
 
-async def register(key, future: asyncio.Future, timeout=10):
+async def register(key, future: asyncio.Future, timeout=default_timeout):
     log.debug(f'register key {key}')
     tasks[key] = future
     asyncio.get_running_loop().create_task(wait_for_timeout(key, future, timeout))
