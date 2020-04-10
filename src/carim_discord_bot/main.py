@@ -10,12 +10,18 @@ from pkg_resources import resource_filename
 
 import carim_discord_bot
 from carim_discord_bot import config, message_builder, setup_instructions
-from carim_discord_bot.rcon import service, registrar, protocol
+from carim_discord_bot.rcon import service, registrar, protocol, connection
+
+
+class BotArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ValueError()
+
 
 client = discord.Client()
 log = None
-message_parser = argparse.ArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things',
-                                         formatter_class=argparse.RawTextHelpFormatter)
+message_parser = BotArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things',
+                                   formatter_class=argparse.RawTextHelpFormatter)
 command_group = message_parser.add_argument_group('commands')
 command_group.add_argument('--help', action='store_true', help='displays this usage information')
 command_group.add_argument('--hello', action='store_true', help='says hello to the beloved user')
@@ -56,7 +62,11 @@ async def on_message(message):
 
     if message.content.startswith('--'):
         args = shlex.split(message.content, comments=True)
-        parsed_args, _ = message_parser.parse_known_args(args)
+        try:
+            parsed_args, _ = message_parser.parse_known_args(args)
+        except (ValueError, argparse.ArgumentError):
+            log.info(f'invalid command {message.content}')
+            return
         await process_message_args(parsed_args, message)
 
 
@@ -280,6 +290,7 @@ def main():
     global log
     log = logging.getLogger(__name__)
     log.setLevel(log_level)
+    connection.log.setLevel(log_level)
     registrar.log.setLevel(log_level)
     protocol.log.setLevel(log_level)
     service.log.setLevel(log_level)
