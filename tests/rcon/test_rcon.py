@@ -5,8 +5,8 @@ from typing import Union, Text, Tuple
 
 import pytest
 
-from carim_discord_bot.rcon import service, protocol, registrar
 from carim_discord_bot import config
+from carim_discord_bot.rcon import service, protocol, registrar
 from carim_discord_bot.rcon.protocol import FORMAT_PREFIX, PACKET_TYPE_FORMAT, SEQUENCE_NUMBER_FORMAT
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s - %(message)s')
@@ -23,7 +23,7 @@ class MockServerProtocol(asyncio.DatagramProtocol):
     def datagram_received(self, data: Union[bytes, Text], addr: Tuple[str, int]) -> None:
         packet = protocol.Packet.parse(data)
         if isinstance(packet.payload, protocol.Login):
-            packet.payload =\
+            packet.payload = \
                 CustomPayload(protocol.LOGIN, struct.pack(FORMAT_PREFIX + SEQUENCE_NUMBER_FORMAT,
                                                           protocol.SUCCESS if self.login_success else 0x00))
             self.transport.sendto(packet.generate(), addr)

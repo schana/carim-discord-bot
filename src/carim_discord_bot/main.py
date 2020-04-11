@@ -19,7 +19,7 @@ class BotArgumentParser(argparse.ArgumentParser):
 
 
 client = discord.Client()
-log = None
+log = logging.getLogger(__name__)
 message_parser = BotArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things',
                                    formatter_class=argparse.RawTextHelpFormatter)
 command_group = message_parser.add_argument_group('commands')
