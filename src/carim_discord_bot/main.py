@@ -33,8 +33,8 @@ command_group.add_argument('--about', action='store_true', help='display some in
 admin_group = message_parser.add_argument_group('admin commands')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
                          help='send command to the server, or list the available commands')
-admin_group.add_argument('--safe_restart', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
-                         help='restart the server in a safe manner with an optional delay')
+admin_group.add_argument('--safe_shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
+                         help='shutdown the server in a safe manner with an optional delay')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
 admin_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
@@ -107,16 +107,16 @@ async def process_admin_args(parsed_args, message):
                 embed=message_builder.build_embed(command, f'{str(result) if result else "success"}'))
         except asyncio.CancelledError:
             await message.channel.send(embed=message_builder.build_embed(command, f'query timed out'))
-    if 'safe_restart' in parsed_args:
+    if 'safe_shutdown' in parsed_args:
         if restart_lock.locked():
-            await message.channel.send(embed=message_builder.build_embed('Restart already scheduled'))
+            await message.channel.send(embed=message_builder.build_embed('Shutdown already scheduled'))
         else:
             if parsed_args.safe_restart is not None:
-                await message.channel.send(embed=message_builder.build_embed('Restart scheduled'))
-                await process_safe_restart(parsed_args.safe_restart)
+                await message.channel.send(embed=message_builder.build_embed('Shutdown scheduled'))
+                await process_safe_shutdown(parsed_args.safe_restart)
             else:
-                await message.channel.send(embed=message_builder.build_embed('Restarting now'))
-                await process_safe_restart()
+                await message.channel.send(embed=message_builder.build_embed('Shutting down now'))
+                await process_safe_shutdown()
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:
@@ -144,14 +144,14 @@ def format_help(include_admin=False):
     return formatter.format_help()
 
 
-async def process_safe_restart(delay=0):
+async def process_safe_shutdown(delay=0):
     async with restart_lock:
         notifications_at_minutes = (60, 30, 20, 10, 5, 4, 3, 2, 1)
         notification_index = 0
         for notification in notifications_at_minutes:
             if delay / 60 < notification:
                 notification_index += 1
-        log.info(f'restart scheduled with notifications at {notifications_at_minutes[notification_index:]} minutes')
+        log.info(f'shutdown scheduled with notifications at {notifications_at_minutes[notification_index:]} minutes')
         proceed_at_minute_intervals = False
         while delay > 0:
             if delay / 60 < notifications_at_minutes[notification_index]:
@@ -167,18 +167,18 @@ async def process_safe_restart(delay=0):
                 await asyncio.sleep(1)
                 delay -= 1
 
-        await event_queue.put('restart -> locking')
+        await event_queue.put('shutdown -> locking')
         await send_command('#lock')
-        await event_queue.put('restart -> kicking')
+        await event_queue.put('shutdown -> kicking')
         await update_player_count()
         count_players = 0 if current_count is None else current_count
         for i in range(count_players):
             command = f'kick {i} server restart'
             await send_command(command)
             log.info(command)
-        await event_queue.put('restart -> wait for a minute')
-        await asyncio.sleep(5)
-        await event_queue.put('restart -> restarting')
+        await event_queue.put('shutdown -> wait for a minute')
+        await asyncio.sleep(60)
+        await event_queue.put('shutdown -> shutting down')
         await send_command('#shutdown')
 
 
