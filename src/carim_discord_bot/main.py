@@ -244,6 +244,16 @@ async def update_player_count():
         log.warning('invalid data from player count')
 
 
+async def schedule_command(command):
+    await asyncio.sleep(command.get('offset', 0))
+    while True:
+        await asyncio.sleep(command.get('interval'))
+        if command.get('command') == 'safe_shutdown':
+            await process_safe_shutdown(delay=command.get('delay', 0))
+        else:
+            await send_command(command.get('command'))
+
+
 async def log_queue(name, queue: asyncio.Queue):
     while True:
         item = await queue.get()
@@ -316,6 +326,9 @@ def main():
 
     if settings.count_channel_id is not None:
         loop.create_task(update_player_count_manager())
+
+    for command in config.get().scheduled_commands:
+        loop.create_task(schedule_command(command))
 
     loop.run_forever()
 
