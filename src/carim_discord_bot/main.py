@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import datetime
+import json
 import logging
 import os
 import pathlib
@@ -38,6 +39,7 @@ admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPP
                          help='send command to the server, or list the available commands')
 admin_group.add_argument('--safe_shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
                          help='shutdown the server in a safe manner with an optional delay')
+admin_group.add_argument('--schedule_status', action='store_true', help='show current scheduled item status')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
 admin_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
@@ -46,6 +48,7 @@ event_queue = asyncio.Queue()
 chat_queue = asyncio.Queue()
 restart_lock = asyncio.Lock()
 current_count = None
+scheduled_commands = list()
 
 
 @client.event
@@ -120,6 +123,22 @@ async def process_admin_args(parsed_args, message):
             else:
                 await message.channel.send(embed=message_builder.build_embed('Shutting down now'))
                 await process_safe_shutdown()
+    if parsed_args.schedule_status:
+        commands_info = list()
+        for sc in scheduled_commands:
+            next_run = sc['next']
+            if not isinstance(next_run, str):
+                next_run = datetime.timedelta(seconds=next_run)
+                next_run -= datetime.timedelta(microseconds=next_run.microseconds)
+                next_run = str(next_run)
+            commands_info.append(dict(
+                command=sc['command']['command'],
+                alive=not sc['task'].done(),
+                interval=sc['command']['interval'],
+                next_run=next_run))
+        await message.channel.send(embed=message_builder.build_embed(
+            'Scheduled Commands',
+            f'```{json.dumps(commands_info, indent=1)}```'))
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:
@@ -247,21 +266,26 @@ async def update_player_count():
         log.warning('invalid data from player count')
 
 
-async def schedule_command(command):
+async def schedule_command(index, command):
     await asyncio.sleep(command.get('offset', 0))
     interval = command.get('interval')
     while True:
         if command.get('with_clock', False):
-            await wait_for_aligned_time(interval)
+            await wait_for_aligned_time(index, interval)
         else:
-            await asyncio.sleep(interval)
+            time_left = interval
+            while time_left > 0:
+                scheduled_commands[index]['next'] = time_left
+                await asyncio.sleep(2)
+                time_left -= 2
+        scheduled_commands[index]['next'] = 'now'
         if command.get('command') == 'safe_shutdown':
             await process_safe_shutdown(delay=command.get('delay', 0))
         else:
             await send_command(command.get('command'))
 
 
-async def wait_for_aligned_time(interval):
+async def wait_for_aligned_time(index, interval):
     while True:
         now = datetime.datetime.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -269,6 +293,7 @@ async def wait_for_aligned_time(interval):
         if day_elapsed % interval < 5:
             break
         else:
+            scheduled_commands[index]['next'] = interval - day_elapsed % interval
             await asyncio.sleep(2)
 
 
@@ -350,7 +375,8 @@ def main():
         loop.create_task(update_player_count_manager())
 
     for command in config.get().scheduled_commands:
-        loop.create_task(schedule_command(command))
+        task = loop.create_task(schedule_command(len(scheduled_commands), command))
+        scheduled_commands.append(dict(task=task, command=command, next=-1))
 
     loop.run_forever()
 
