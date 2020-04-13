@@ -6,13 +6,10 @@
     "rcon_password": "RCon password, found in the BattlEye profile directory in your server files"
   },
   "optional": {
-    "channels": {
-      "Note: if you don't want any of these features, remove the entry from the config.json": 0,
-      "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
-      "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
-      "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
-      "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count"
-    },
+    "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
+    "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
+    "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
+    "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count",
     "update_player_count_interval": "Time, in seconds, between player count update queries",
     "rcon_keep_alive_interval": "Time, in seconds, between RCon keep alive messages. The connection times out at around 45 seconds",
     "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"
@@ -23,6 +20,13 @@
     "rcon_messages": "Send all RCon messages to admin log channel",
     "rcon_keep_alive": "Send RCon keep alive status messages to admin log channel",
     "include_timestamp": "Include timestamp on all messages from the bot"
+  },
+  "scheduled_commands": {
+    "command": "RCon command to run with parameters. Also accepts 'safe_shutdown'. See the template for examples",
+    "delay": "Only used for 'safe_shutdown'. Specifies the delay in seconds before the shutdown",
+    "interval": "Interval in seconds between runs of the command",
+    "with_clock": "Whether the interval should be aligned with the clock instead of relative",
+    "offset": "Delay in seconds from bot startup to running the command"
   },
   "deprecated": {
     "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"

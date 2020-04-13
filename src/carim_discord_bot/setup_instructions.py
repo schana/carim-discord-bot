@@ -33,14 +33,30 @@ def print_setup_instructions_config():
     print_header('Update configuration')
     config_template_path = resource_filename(__name__, 'data/config.json')
     config_descriptions_path = resource_filename(__name__, 'data/config_descriptions.json')
-    print('The configuration file is located at:')
+    print('The template configuration file is located at:')
     print(config_template_path)
     print()
-    print('Edit this file with your values following the descriptions below:')
+    if os.name == 'nt':
+        print('For new installs, copy this template to a permanent location')
+    elif os.name == 'posix':
+        print('For new installs, copy this template to /etc/carim/config.json')
+        print('You might need to create the carim directory first')
+        print('STEPS')
+        steps = (
+            'sudo mkdir -p /etc/carim',
+            f'sudo cp {config_template_path} /etc/carim/config.json',
+            'sudo chmod 755 /etc/carim',
+            'sudo chmod 640 /etc/carim/config.json'
+        )
+        for step in steps:
+            print(' ', step)
+    print('Edit the copy with your values following the descriptions below:')
     with open(config_descriptions_path) as f:
         descriptions = json.load(f)
-    for entry_type in ('required', 'optional', 'log_events_in_discord'):
+    for entry_type in ('required', 'optional', 'log_events_in_discord', 'scheduled_commands'):
         print(entry_type.upper())
+        if entry_type == 'optional':
+            print("  Note: if you don't want any of these features, remove the entry from the config.json")
         for entry, description in descriptions.get(entry_type, dict()).items():
             print(' ', f'"{entry}"', ':', description)
     print()
@@ -60,7 +76,9 @@ def print_setup_instructions_service():
             'Ensure your bot runs with your configuration by calling "carim-bot" from command prompt',
             '  Use Ctrl+C to quit the running process, or use --kill from the admin channel in discord',
             'Create the service with the following command',
-            '  sc create CarimBot start= delayed-auto binpath= carim-bot'
+            '  sc create CarimBot start= delayed-auto binpath= "carim-bot -c <path to config file>"',
+            '  Example:',
+            '  sc create CarimBot start= delayed-auto binpath ="carim-bot -c D:\\config.json"'
         )
         for step in steps:
             print(' ', step)

@@ -64,6 +64,10 @@ class Config:
         debug = config.get('debug', False)
 
         scheduled_commands = config.get('scheduled_commands', list())
+        if not isinstance(scheduled_commands, list):
+            message = 'config.json scheduled_commands needs to be a list if present'
+            log.error(message)
+            raise ValueError(message)
 
         return Config(token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id, count_channel_id,
                       update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,

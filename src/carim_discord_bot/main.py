@@ -2,6 +2,8 @@ import argparse
 import asyncio
 import datetime
 import logging
+import os
+import pathlib
 import random
 import shlex
 import sys
@@ -305,6 +307,10 @@ def main():
 
     if 'config' not in args:
         args.config = resource_filename(__name__, 'data/config.json')
+        if os.name == 'posix':
+            p = pathlib.Path('/etc/carim/config.json')
+            if p.is_file():
+                args.config = p
     settings = config.Config.build_from(args.config)
     config.set(settings)
 
