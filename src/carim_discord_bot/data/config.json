@@ -22,9 +22,9 @@
   "scheduled_commands": [
     {
       "command": "safe_shutdown",
-      "delay": 3601,
-      "interval": 17999,
-      "offset": 0
+      "delay": 3600,
+      "interval": 21600,
+      "with_clock": true
     },
     {
       "command": "say -1 Visit on Discord: https://discord.gg/kdPnVu4",

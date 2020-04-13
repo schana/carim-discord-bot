@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import datetime
 import logging
 import random
 import shlex
@@ -246,12 +247,27 @@ async def update_player_count():
 
 async def schedule_command(command):
     await asyncio.sleep(command.get('offset', 0))
+    interval = command.get('interval')
     while True:
-        await asyncio.sleep(command.get('interval'))
+        if command.get('with_clock', False):
+            await wait_for_aligned_time(interval)
+        else:
+            await asyncio.sleep(interval)
         if command.get('command') == 'safe_shutdown':
             await process_safe_shutdown(delay=command.get('delay', 0))
         else:
             await send_command(command.get('command'))
+
+
+async def wait_for_aligned_time(interval):
+    while True:
+        now = datetime.datetime.now()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_elapsed = (now - midnight).total_seconds()
+        if day_elapsed % interval < 5:
+            break
+        else:
+            await asyncio.sleep(2)
 
 
 async def log_queue(name, queue: asyncio.Queue):
