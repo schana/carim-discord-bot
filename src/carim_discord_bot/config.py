@@ -37,9 +37,12 @@ class Config:
         if publish_channel_id is None:
             publish_channel_id = config.get('rcon_publish_channel')
             if publish_channel_id is not None:
-                log.warning('carim.json rcon_publish_channel is deprecated, use rcon_admin_log_channel instead')
+                log.warning('config.json rcon_publish_channel is deprecated, use rcon_admin_log_channel instead')
 
         admin_channels = config.get('rcon_admin_channels', list())
+        if isinstance(admin_channels, int):
+            log.warning('config.json rcon_admin_channels should be a list, but only an int was found')
+            admin_channels = [admin_channels]
         chat_channel_id = config.get('rcon_chat_channel')
         count_channel_id = config.get('rcon_count_channel')
         update_player_count_interval = config.get('update_player_count_interval', 300)
