@@ -33,18 +33,23 @@ class Config:
         ip = config['rcon_ip']
         port = config['rcon_port']
         password = config['rcon_password']
+
         publish_channel_id = config.get('rcon_admin_log_channel')
         if publish_channel_id is None:
             publish_channel_id = config.get('rcon_publish_channel')
             if publish_channel_id is not None:
                 log.warning('config.json rcon_publish_channel is deprecated, use rcon_admin_log_channel instead')
+        publish_channel_id = Config.check_channel_default(channel=publish_channel_id)
 
         admin_channels = config.get('rcon_admin_channels', list())
         if isinstance(admin_channels, int):
             log.warning('config.json rcon_admin_channels should be a list, but only an int was found')
             admin_channels = [admin_channels]
-        chat_channel_id = config.get('rcon_chat_channel')
-        count_channel_id = config.get('rcon_count_channel')
+        admin_channels = Config.check_channel_default(channels=admin_channels)
+
+        chat_channel_id = Config.check_channel_default(channel=config.get('rcon_chat_channel'))
+        count_channel_id = Config.check_channel_default(channel=config.get('rcon_count_channel'))
+
         update_player_count_interval = config.get('update_player_count_interval', 300)
         rcon_keep_alive_interval = config.get('rcon_keep_alive_interval', 30)
 
@@ -64,6 +69,15 @@ class Config:
                       update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
                       log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug,
                       scheduled_commands)
+
+    @staticmethod
+    def check_channel_default(channel=None, channels: list = None):
+        if channel is not None:
+            return None if channel == 0 else channel
+        if channels is not None:
+            if 0 in channels:
+                channels.remove(0)
+            return channels
 
     @staticmethod
     def build_from(file_path):

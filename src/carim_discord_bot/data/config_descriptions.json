@@ -6,10 +6,13 @@
     "rcon_password": "RCon password, found in the BattlEye profile directory in your server files"
   },
   "optional": {
-    "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
-    "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
-    "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
-    "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count",
+    "channels": {
+      "Note: if you don't want any of these features, remove the entry from the config.json": 0,
+      "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
+      "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
+      "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
+      "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count"
+    },
     "update_player_count_interval": "Time, in seconds, between player count update queries",
     "rcon_keep_alive_interval": "Time, in seconds, between RCon keep alive messages. The connection times out at around 45 seconds",
     "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"
