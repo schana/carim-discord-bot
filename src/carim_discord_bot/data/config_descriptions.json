@@ -21,6 +21,13 @@
     "rcon_keep_alive": "Send RCon keep alive status messages to admin log channel",
     "include_timestamp": "Include timestamp on all messages from the bot"
   },
+  "scheduled_commands": {
+    "command": "RCon command to run with parameters. Also accepts 'safe_shutdown'. See the template for examples",
+    "delay": "Only used for 'safe_shutdown'. Specifies the delay in seconds before the shutdown",
+    "interval": "Interval in seconds between runs of the command",
+    "with_clock": "Whether the interval should be aligned with the clock instead of relative",
+    "offset": "Delay in seconds from bot startup to running the command"
+  },
   "deprecated": {
     "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"
   }
