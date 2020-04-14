@@ -71,7 +71,7 @@ def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue
             log.info(f'login event {login_message}')
             if config.get().log_connect_disconnect_notices:
                 chat_queue.put_nowait(login_message)
-        chat = re.compile(r'^\(Global\).*:.*')
+        chat = re.compile(r'^\((Global|Side)\).*:.*')
         if chat.match(message):
             _, _, content = message.partition(' ')
             chat_queue.put_nowait(content)
