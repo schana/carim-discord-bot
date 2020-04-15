@@ -266,23 +266,27 @@ async def update_player_count():
         log.warning('invalid data from player count')
 
 
-async def schedule_command(index, command):
+async def schedule_command_manager(index, command):
     await asyncio.sleep(command.get('offset', 0))
-    interval = command.get('interval')
     while True:
-        if command.get('with_clock', False):
-            await wait_for_aligned_time(index, interval)
-        else:
-            time_left = interval
-            while time_left > 0:
-                scheduled_commands[index]['next'] = time_left
-                await asyncio.sleep(2)
-                time_left -= 2
-        scheduled_commands[index]['next'] = 'now'
-        if command.get('command') == 'safe_shutdown':
-            await process_safe_shutdown(delay=command.get('delay', 0))
-        else:
-            await send_command(command.get('command'))
+        await schedule_command(index, command)
+
+
+async def schedule_command(index, command):
+    interval = command.get('interval')
+    if command.get('with_clock', False):
+        await wait_for_aligned_time(index, interval)
+    else:
+        time_left = interval
+        while time_left > 0:
+            scheduled_commands[index]['next'] = time_left
+            await asyncio.sleep(2)
+            time_left -= 2
+    scheduled_commands[index]['next'] = 'now'
+    if command.get('command') == 'safe_shutdown':
+        await process_safe_shutdown(delay=command.get('delay', 0))
+    else:
+        await send_command(command.get('command'))
 
 
 async def wait_for_aligned_time(index, interval):
@@ -291,7 +295,10 @@ async def wait_for_aligned_time(index, interval):
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         day_elapsed = (now - midnight).total_seconds()
         if day_elapsed % interval < 5:
-            break
+            if scheduled_commands[index]['next'] == 'now':
+                await asyncio.sleep(2)
+            else:
+                break
         else:
             scheduled_commands[index]['next'] = interval - day_elapsed % interval
             await asyncio.sleep(2)
