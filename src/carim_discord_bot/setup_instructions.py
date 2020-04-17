@@ -15,7 +15,7 @@ def print_setup_instructions():
 
 
 def print_setup_instructions_bot():
-    permissions = ('Manage Channels', 'View Channels', 'Send Messages')
+    permissions = ('Manage Channels', 'View Channels', 'Send Messages', 'Embed Links')
     required_permissions = ', '.join(f'"{p}"' for p in permissions[:-1])
     required_permissions += f', and "{permissions[-1]}"'
     print_header('Create bot account')

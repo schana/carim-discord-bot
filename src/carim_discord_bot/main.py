@@ -6,6 +6,7 @@ import logging
 import os
 import pathlib
 import random
+import re
 import shlex
 import sys
 
@@ -240,13 +241,17 @@ async def process_rcon_events():
 
 
 async def process_rcon_chats():
+    ignore_re = re.compile(config.get().chat_ignore_regex)
     while True:
         chat = await chat_queue.get()
-        embed_args = dict(description=chat)
-        log.info(f'got from chat_queue {chat}')
-        await client.wait_until_ready()
-        channel = client.get_channel(config.get().chat_channel_id)
-        await channel.send(embed=discord.Embed(**embed_args))
+        if not ignore_re.match(chat):
+            log.info(f'got from chat_queue and sending {chat}')
+            embed_args = dict(description=chat)
+            channel = client.get_channel(config.get().chat_channel_id)
+            await client.wait_until_ready()
+            await channel.send(embed=discord.Embed(**embed_args))
+        else:
+            log.info(f'got from chat_queue and ignoring {chat}')
 
 
 async def update_player_count_manager():

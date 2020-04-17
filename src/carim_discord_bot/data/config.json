@@ -7,6 +7,7 @@
   "bot_presence_type": "playing",
   "rcon_admin_log_channel": 0,
   "rcon_chat_channel": 0,
+  "rcon_chat_ignore_regex": ".*: !.*",
   "rcon_admin_channels": [
     0
   ],
