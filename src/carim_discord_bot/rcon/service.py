@@ -5,8 +5,7 @@ from carim_discord_bot import config
 from carim_discord_bot.rcon import protocol, registrar, connection
 
 log = logging.getLogger(__name__)
-VALID_COMMANDS = ('players', 'admins', 'kick', 'bans', 'ban', 'removeBan', 'say', 'addBan', '#lock', '#unlock',
-                  '#shutdown')
+VALID_COMMANDS = ('players', 'admins', 'kick', 'bans', 'ban', 'removeBan', 'say', 'addBan', '#shutdown')
 
 
 async def start(future_queue, event_queue, chat_queue):

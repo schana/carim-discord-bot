@@ -189,19 +189,32 @@ async def process_safe_shutdown(delay=0):
                 await asyncio.sleep(1)
                 delay -= 1
 
-        await event_queue.put('shutdown -> locking')
-        await send_command('#lock')
         await event_queue.put('shutdown -> kicking')
-        await update_player_count()
-        count_players = 0 if current_count is None else current_count
-        for i in range(count_players):
-            command = f'kick {i} server restart'
-            await send_command(command)
-            log.info(command)
+        await kick_everybody('Server is restarting')
+
+        await event_queue.put('shutdown -> locking')
         await event_queue.put('shutdown -> wait for a minute')
-        await asyncio.sleep(60)
+        # Lock RCon command doesn't seem to work, so instead we loop
+        # kicking players. It could be more complex and only kick if people
+        # join, but this seems like the simpler solution
+        # await send_command('#lock')
+        time_left = 60
+        while time_left > 0:
+            await kick_everybody(f'Server locked, restarting in {time_left} seconds')
+            await asyncio.sleep(2)
+            time_left -= 2
+
         await event_queue.put('shutdown -> shutting down')
         await send_command('#shutdown')
+
+
+async def kick_everybody(message):
+    await update_player_count()
+    count_players = 0 if current_count is None else current_count
+    for i in range(count_players):
+        command = f'kick {i} {message}'
+        await send_command(command)
+        log.info(command)
 
 
 async def send_command(command):
