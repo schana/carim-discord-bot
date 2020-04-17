@@ -6,6 +6,7 @@ import logging
 import os
 import pathlib
 import random
+import re
 import shlex
 import sys
 
@@ -189,19 +190,32 @@ async def process_safe_shutdown(delay=0):
                 await asyncio.sleep(1)
                 delay -= 1
 
-        await event_queue.put('shutdown -> locking')
-        await send_command('#lock')
         await event_queue.put('shutdown -> kicking')
-        await update_player_count()
-        count_players = 0 if current_count is None else current_count
-        for i in range(count_players):
-            command = f'kick {i} server restart'
-            await send_command(command)
-            log.info(command)
+        await kick_everybody('Server is restarting')
+
+        await event_queue.put('shutdown -> locking')
         await event_queue.put('shutdown -> wait for a minute')
-        await asyncio.sleep(60)
+        # Lock RCon command doesn't seem to work, so instead we loop
+        # kicking players. It could be more complex and only kick if people
+        # join, but this seems like the simpler solution
+        # await send_command('#lock')
+        time_left = 60
+        while time_left > 0:
+            await kick_everybody(f'Server locked, restarting in {time_left} seconds')
+            await asyncio.sleep(2)
+            time_left -= 2
+
         await event_queue.put('shutdown -> shutting down')
         await send_command('#shutdown')
+
+
+async def kick_everybody(message):
+    await update_player_count()
+    count_players = 0 if current_count is None else current_count
+    for i in range(count_players):
+        command = f'kick {i} {message}'
+        await send_command(command)
+        log.info(command)
 
 
 async def send_command(command):
@@ -227,13 +241,17 @@ async def process_rcon_events():
 
 
 async def process_rcon_chats():
+    ignore_re = re.compile(config.get().chat_ignore_regex)
     while True:
         chat = await chat_queue.get()
-        embed_args = dict(description=chat)
-        log.info(f'got from chat_queue {chat}')
-        await client.wait_until_ready()
-        channel = client.get_channel(config.get().chat_channel_id)
-        await channel.send(embed=discord.Embed(**embed_args))
+        if not ignore_re.match(chat):
+            log.info(f'got from chat_queue and sending {chat}')
+            embed_args = dict(description=chat)
+            channel = client.get_channel(config.get().chat_channel_id)
+            await client.wait_until_ready()
+            await channel.send(embed=discord.Embed(**embed_args))
+        else:
+            log.info(f'got from chat_queue and ignoring {chat}')
 
 
 async def update_player_count_manager():
@@ -266,23 +284,27 @@ async def update_player_count():
         log.warning('invalid data from player count')
 
 
-async def schedule_command(index, command):
+async def schedule_command_manager(index, command):
     await asyncio.sleep(command.get('offset', 0))
-    interval = command.get('interval')
     while True:
-        if command.get('with_clock', False):
-            await wait_for_aligned_time(index, interval)
-        else:
-            time_left = interval
-            while time_left > 0:
-                scheduled_commands[index]['next'] = time_left
-                await asyncio.sleep(2)
-                time_left -= 2
-        scheduled_commands[index]['next'] = 'now'
-        if command.get('command') == 'safe_shutdown':
-            await process_safe_shutdown(delay=command.get('delay', 0))
-        else:
-            await send_command(command.get('command'))
+        await schedule_command(index, command)
+
+
+async def schedule_command(index, command):
+    interval = command.get('interval')
+    if command.get('with_clock', False):
+        await wait_for_aligned_time(index, interval)
+    else:
+        time_left = interval
+        while time_left > 0:
+            scheduled_commands[index]['next'] = time_left
+            await asyncio.sleep(2)
+            time_left -= 2
+    scheduled_commands[index]['next'] = 'now'
+    if command.get('command') == 'safe_shutdown':
+        await process_safe_shutdown(delay=command.get('delay', 0))
+    else:
+        await send_command(command.get('command'))
 
 
 async def wait_for_aligned_time(index, interval):
@@ -291,7 +313,10 @@ async def wait_for_aligned_time(index, interval):
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         day_elapsed = (now - midnight).total_seconds()
         if day_elapsed % interval < 5:
-            break
+            if scheduled_commands[index]['next'] == 'now':
+                await asyncio.sleep(2)
+            else:
+                break
         else:
             scheduled_commands[index]['next'] = interval - day_elapsed % interval
             await asyncio.sleep(2)
@@ -358,6 +383,19 @@ def main():
 
     loop.run_until_complete(client.login(config.get().token))
     loop.create_task(client.connect())
+    loop.run_until_complete(client.wait_until_ready())
+
+    if config.get().presence is not None and len(config.get().presence) > 0:
+        if config.get().presence_type == 'watching':
+            activity_type = discord.ActivityType.watching
+        elif config.get().presence_type == 'listening':
+            activity_type = discord.ActivityType.listening
+        else:
+            activity_type = discord.ActivityType.playing
+        activity = discord.Activity(type=activity_type, name=config.get().presence)
+    else:
+        activity = None
+    loop.run_until_complete(client.change_presence(activity=activity))
 
     loop.run_until_complete(service.start(future_queue, event_queue, chat_queue))
 
