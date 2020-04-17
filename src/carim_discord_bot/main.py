@@ -413,7 +413,7 @@ def main():
         loop.create_task(update_player_count_manager())
 
     for command in config.get().scheduled_commands:
-        task = loop.create_task(schedule_command(len(scheduled_commands), command))
+        task = loop.create_task(schedule_command_manager(len(scheduled_commands), command))
         scheduled_commands.append(dict(task=task, command=command, next=-1))
 
     loop.run_forever()
