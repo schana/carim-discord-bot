@@ -6,6 +6,8 @@
     "rcon_password": "RCon password, found in the BattlEye profile directory in your server files"
   },
   "optional": {
+    "bot_presence": "Discord presence message for the bot to display",
+    "bot_presence_type": "Discord presence type from (playing, listening, watching) default: playing",
     "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
     "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
     "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",

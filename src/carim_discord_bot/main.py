@@ -378,6 +378,19 @@ def main():
 
     loop.run_until_complete(client.login(config.get().token))
     loop.create_task(client.connect())
+    loop.run_until_complete(client.wait_until_ready())
+
+    if config.get().presence is not None and len(config.get().presence) > 0:
+        if config.get().presence_type == 'watching':
+            activity_type = discord.ActivityType.watching
+        elif config.get().presence_type == 'listening':
+            activity_type = discord.ActivityType.listening
+        else:
+            activity_type = discord.ActivityType.playing
+        activity = discord.Activity(type=activity_type, name=config.get().presence)
+    else:
+        activity = None
+    loop.run_until_complete(client.change_presence(activity=activity))
 
     loop.run_until_complete(service.start(future_queue, event_queue, chat_queue))
 

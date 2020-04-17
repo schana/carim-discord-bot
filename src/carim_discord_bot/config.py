@@ -5,14 +5,16 @@ log = logging.getLogger(__name__)
 
 
 class Config:
-    def __init__(self, token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id,
-                 count_channel_id, update_player_count_interval, rcon_keep_alive_interval,
+    def __init__(self, token, ip, port, password, presence, presence_type, publish_channel_id, admin_channels,
+                 chat_channel_id, count_channel_id, update_player_count_interval, rcon_keep_alive_interval,
                  log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages, log_rcon_keep_alive,
                  include_timestamp, debug, scheduled_commands):
         self.token = token
         self.ip = ip
         self.port = port
         self.password = password
+        self.presence = presence
+        self.presence_type = presence_type
         self.publish_channel_id = publish_channel_id
         self.admin_channels = admin_channels
         self.chat_channel_id = chat_channel_id
@@ -33,6 +35,12 @@ class Config:
         ip = config['rcon_ip']
         port = config['rcon_port']
         password = config['rcon_password']
+
+        presence = config.get('bot_presence')
+        presence_type = config.get('bot_presence_type', 'playing')
+        if presence_type not in ('playing', 'listening', 'watching'):
+            log.error(f'config.json unknown presence type ({presence_type}), using default instead')
+            presence_type = 'playing'
 
         publish_channel_id = config.get('rcon_admin_log_channel')
         if publish_channel_id is None:
@@ -69,10 +77,10 @@ class Config:
             log.error(message)
             raise ValueError(message)
 
-        return Config(token, ip, port, password, publish_channel_id, admin_channels, chat_channel_id, count_channel_id,
-                      update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
-                      log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug,
-                      scheduled_commands)
+        return Config(token, ip, port, password, presence, presence_type, publish_channel_id, admin_channels,
+                      chat_channel_id, count_channel_id, update_player_count_interval, rcon_keep_alive_interval,
+                      log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages, log_rcon_keep_alive,
+                      include_timestamp, debug, scheduled_commands)
 
     @staticmethod
     def check_channel_default(channel=None, channels: list = None):
