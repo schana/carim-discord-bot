@@ -114,7 +114,11 @@ class Message(Payload):
     @staticmethod
     def parse(data):
         sequence_number = struct.unpack_from(FORMAT_PREFIX + SEQUENCE_NUMBER_FORMAT, data)[0]
-        return Message(sequence_number, message=str(data[1:], encoding='ascii'))
+        try:
+            message = str(data[1:], encoding='ascii')
+        except UnicodeDecodeError:
+            message = str(data[1:], encoding='utf-8')
+        return Message(sequence_number, message=message)
 
     def generate(self):
         return struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, MESSAGE, self.sequence_number)
