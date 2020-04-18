@@ -41,6 +41,8 @@ admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPP
 admin_group.add_argument('--safe_shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
                          help='shutdown the server in a safe manner with an optional delay')
 admin_group.add_argument('--schedule_status', action='store_true', help='show current scheduled item status')
+admin_group.add_argument('--schedule_skip', type=int, default=argparse.SUPPRESS, metavar='index',
+                         help='skip next run of scheduled command')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
 admin_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
@@ -126,20 +128,29 @@ async def process_admin_args(parsed_args, message):
                 await process_safe_shutdown()
     if parsed_args.schedule_status:
         commands_info = list()
-        for sc in scheduled_commands:
+        for i, sc in enumerate(scheduled_commands):
             next_run = sc['next']
             if not isinstance(next_run, str):
                 next_run = datetime.timedelta(seconds=next_run)
                 next_run -= datetime.timedelta(microseconds=next_run.microseconds)
                 next_run = str(next_run)
-            commands_info.append(dict(
-                command=sc['command']['command'],
-                alive=not sc['task'].done(),
-                interval=sc['command']['interval'],
-                next_run=next_run))
+            c_info = dict(index=i,
+                          command=sc['command']['command'],
+                          alive=not sc['task'].done(),
+                          interval=sc['command']['interval'],
+                          next_run=next_run)
+            if sc.get('skip', False):
+                c_info['skip_next'] = True
+            commands_info.append(c_info)
         await message.channel.send(embed=message_builder.build_embed(
             'Scheduled Commands',
             f'```{json.dumps(commands_info, indent=1)}```'))
+    if 'schedule_skip' in parsed_args:
+        i = parsed_args.schedule_skip
+        if not 0 <= i < len(scheduled_commands):
+            await message.channel.send(embed=message_builder.build_embed('Invalid index'))
+        else:
+            scheduled_commands[i]['skip'] = True
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:
@@ -303,10 +314,14 @@ async def schedule_command(index, command):
             await asyncio.sleep(2)
             time_left -= 2
     scheduled_commands[index]['next'] = 'now'
-    if command.get('command') == 'safe_shutdown':
-        await process_safe_shutdown(delay=command.get('delay', 0))
+    if scheduled_commands[index].get('skip', False):
+        await event_queue.put(f'Skipping scheduled command: {command.get("command")}')
+        del scheduled_commands[index]['skip']
     else:
-        await send_command(command.get('command'))
+        if command.get('command') == 'safe_shutdown':
+            await process_safe_shutdown(delay=command.get('delay', 0))
+        else:
+            await send_command(command.get('command'))
 
 
 async def wait_for_aligned_time(index, interval, offset):
