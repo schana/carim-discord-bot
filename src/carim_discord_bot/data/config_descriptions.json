@@ -29,7 +29,7 @@
     "delay": "Only used for 'safe_shutdown'. Specifies the delay in seconds before the shutdown",
     "interval": "Interval in seconds between runs of the command",
     "with_clock": "Whether the interval should be aligned with the clock instead of relative",
-    "offset": "Delay in seconds from bot startup to running the command"
+    "offset": "Delay in seconds from bot startup to running the command, or offset from midnight if with_clock is true"
   },
   "deprecated": {
     "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"

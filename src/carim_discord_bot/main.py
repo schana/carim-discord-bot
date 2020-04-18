@@ -41,6 +41,8 @@ admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPP
 admin_group.add_argument('--safe_shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
                          help='shutdown the server in a safe manner with an optional delay')
 admin_group.add_argument('--schedule_status', action='store_true', help='show current scheduled item status')
+admin_group.add_argument('--schedule_skip', type=int, default=argparse.SUPPRESS, metavar='index',
+                         help='skip next run of scheduled command')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
 admin_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
@@ -126,20 +128,29 @@ async def process_admin_args(parsed_args, message):
                 await process_safe_shutdown()
     if parsed_args.schedule_status:
         commands_info = list()
-        for sc in scheduled_commands:
+        for i, sc in enumerate(scheduled_commands):
             next_run = sc['next']
             if not isinstance(next_run, str):
                 next_run = datetime.timedelta(seconds=next_run)
                 next_run -= datetime.timedelta(microseconds=next_run.microseconds)
                 next_run = str(next_run)
-            commands_info.append(dict(
-                command=sc['command']['command'],
-                alive=not sc['task'].done(),
-                interval=sc['command']['interval'],
-                next_run=next_run))
+            c_info = dict(index=i,
+                          command=sc['command']['command'],
+                          alive=not sc['task'].done(),
+                          interval=sc['command']['interval'],
+                          next_run=next_run)
+            if sc.get('skip', False):
+                c_info['skip_next'] = True
+            commands_info.append(c_info)
         await message.channel.send(embed=message_builder.build_embed(
             'Scheduled Commands',
             f'```{json.dumps(commands_info, indent=1)}```'))
+    if 'schedule_skip' in parsed_args:
+        i = parsed_args.schedule_skip
+        if not 0 <= i < len(scheduled_commands):
+            await message.channel.send(embed=message_builder.build_embed('Invalid index'))
+        else:
+            scheduled_commands[i]['skip'] = True
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:
@@ -285,7 +296,8 @@ async def update_player_count():
 
 
 async def schedule_command_manager(index, command):
-    await asyncio.sleep(command.get('offset', 0))
+    if not command.get('with_clock', False):
+        await asyncio.sleep(command.get('offset', 0))
     while True:
         await schedule_command(index, command)
 
@@ -293,7 +305,8 @@ async def schedule_command_manager(index, command):
 async def schedule_command(index, command):
     interval = command.get('interval')
     if command.get('with_clock', False):
-        await wait_for_aligned_time(index, interval)
+        offset = command.get('offset', 0)
+        await wait_for_aligned_time(index, interval, offset)
     else:
         time_left = interval
         while time_left > 0:
@@ -301,25 +314,44 @@ async def schedule_command(index, command):
             await asyncio.sleep(2)
             time_left -= 2
     scheduled_commands[index]['next'] = 'now'
-    if command.get('command') == 'safe_shutdown':
-        await process_safe_shutdown(delay=command.get('delay', 0))
+    if scheduled_commands[index].get('skip', False):
+        await event_queue.put(f'Skipping scheduled command: {command.get("command")}')
+        del scheduled_commands[index]['skip']
     else:
-        await send_command(command.get('command'))
+        if command.get('command') == 'safe_shutdown':
+            await process_safe_shutdown(delay=command.get('delay', 0))
+        else:
+            await send_command(command.get('command'))
 
 
-async def wait_for_aligned_time(index, interval):
+async def wait_for_aligned_time(index, interval, offset):
     while True:
-        now = datetime.datetime.now()
-        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        day_elapsed = (now - midnight).total_seconds()
-        if day_elapsed % interval < 5:
+        if is_time_aligned(interval, offset):
             if scheduled_commands[index]['next'] == 'now':
                 await asyncio.sleep(2)
             else:
                 break
         else:
-            scheduled_commands[index]['next'] = interval - day_elapsed % interval
+            scheduled_commands[index]['next'] = get_time_to_next_command(interval, offset)
             await asyncio.sleep(2)
+
+
+def is_time_aligned(interval, offset):
+    if get_time_to_next_command(interval, offset) < 5:
+        return True
+    else:
+        return False
+
+
+def get_time_to_next_command(interval, offset):
+    now = get_datetime_now()
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_elapsed = (now - midnight).total_seconds() - offset
+    return interval - day_elapsed % interval
+
+
+def get_datetime_now():
+    return datetime.datetime.now()
 
 
 async def log_queue(name, queue: asyncio.Queue):

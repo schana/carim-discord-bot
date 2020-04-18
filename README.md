@@ -18,6 +18,7 @@ admin commands:
 --safe_shutdown [seconds]  shutdown the server in a safe manner
                            with an optional delay
 --schedule_status          show current scheduled item status
+--schedule_skip index      skip next run of scheduled command
 --kill                     make the bot terminate
 --version                  display the current version of the bot
 ```
