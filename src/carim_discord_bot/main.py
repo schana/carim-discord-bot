@@ -285,7 +285,8 @@ async def update_player_count():
 
 
 async def schedule_command_manager(index, command):
-    await asyncio.sleep(command.get('offset', 0))
+    if not command.get('with_clock', False):
+        await asyncio.sleep(command.get('offset', 0))
     while True:
         await schedule_command(index, command)
 
@@ -293,7 +294,8 @@ async def schedule_command_manager(index, command):
 async def schedule_command(index, command):
     interval = command.get('interval')
     if command.get('with_clock', False):
-        await wait_for_aligned_time(index, interval)
+        offset = command.get('offset', 0)
+        await wait_for_aligned_time(index, interval, offset)
     else:
         time_left = interval
         while time_left > 0:
@@ -307,19 +309,34 @@ async def schedule_command(index, command):
         await send_command(command.get('command'))
 
 
-async def wait_for_aligned_time(index, interval):
+async def wait_for_aligned_time(index, interval, offset):
     while True:
-        now = datetime.datetime.now()
-        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        day_elapsed = (now - midnight).total_seconds()
-        if day_elapsed % interval < 5:
+        if is_time_aligned(interval, offset):
             if scheduled_commands[index]['next'] == 'now':
                 await asyncio.sleep(2)
             else:
                 break
         else:
-            scheduled_commands[index]['next'] = interval - day_elapsed % interval
+            scheduled_commands[index]['next'] = get_time_to_next_command(interval, offset)
             await asyncio.sleep(2)
+
+
+def is_time_aligned(interval, offset):
+    if get_time_to_next_command(interval, offset) < 5:
+        return True
+    else:
+        return False
+
+
+def get_time_to_next_command(interval, offset):
+    now = get_datetime_now()
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_elapsed = (now - midnight).total_seconds() - offset
+    return interval - day_elapsed % interval
+
+
+def get_datetime_now():
+    return datetime.datetime.now()
 
 
 async def log_queue(name, queue: asyncio.Queue):
