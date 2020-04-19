@@ -221,9 +221,13 @@ async def process_safe_shutdown(delay=0):
 
 
 async def kick_everybody(message):
-    await update_player_count()
+    raw_players = await update_player_count()
     count_players = 0 if current_count is None else current_count
-    for i in range(count_players):
+    player_ids = range(count_players)
+    if raw_players is not None:
+        player_lines = raw_players.split('\n')[3:-1]
+        player_ids = [line.split()[0] for line in player_lines]
+    for i in player_ids:
         command = f'kick {i} {message}'
         await send_command(command)
         log.info(command)
@@ -291,6 +295,7 @@ async def update_player_count():
             if config.get().log_player_count_updates:
                 await event_queue.put(f'Update player count: {player_count_string}')
             current_count = count_players
+        return result
     except ValueError:
         log.warning('invalid data from player count')
 
