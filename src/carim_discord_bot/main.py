@@ -120,9 +120,9 @@ async def process_admin_args(parsed_args, message):
         if restart_lock.locked():
             await message.channel.send(embed=message_builder.build_embed('Shutdown already scheduled'))
         else:
-            if parsed_args.safe_restart is not None:
+            if parsed_args.safe_shutdown is not None:
                 await message.channel.send(embed=message_builder.build_embed('Shutdown scheduled'))
-                await process_safe_shutdown(parsed_args.safe_restart)
+                await process_safe_shutdown(parsed_args.safe_shutdown)
             else:
                 await message.channel.send(embed=message_builder.build_embed('Shutting down now'))
                 await process_safe_shutdown()
