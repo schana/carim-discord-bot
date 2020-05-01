@@ -69,7 +69,7 @@ def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue
         connect = re.compile(r'Verified GUID .* of player .*')
         if connect.match(message):
             parts = message.split()
-            name = parts[6:]
+            name = ' '.join(parts[6:])
             login_message = f'{name} connected'
             log.info(f'login event {login_message}')
             if config.get().log_connect_disconnect_notices:
