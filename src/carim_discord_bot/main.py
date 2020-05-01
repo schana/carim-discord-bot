@@ -66,7 +66,11 @@ async def on_message(message):
 
     if message.channel.id == config.get().chat_channel_id:
         chat_message = f'Discord> {message.author.display_name}: {message.content}'
-        await send_command(f'say -1 {chat_message}')
+        chat_future = await send_command(f'say -1 {chat_message}')
+        try:
+            await chat_future
+        except asyncio.CancelledError:
+            await message.channel.send(f'Failed to send: {chat_message}')
         return
 
     if message.content.startswith('--'):

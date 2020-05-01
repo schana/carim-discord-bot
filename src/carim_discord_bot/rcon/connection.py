@@ -59,15 +59,18 @@ def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue
     elif isinstance(packet.payload, protocol.Message):
         message = packet.payload.message
         log.debug(f'message: {message}')
-        connect = re.compile(r'Player .*connected')
+        disconnect = re.compile(r'Player .* disconnected')
+        if disconnect.match(message):
+            parts = message.split()
+            disconnect_message = ' '.join(parts[2:])
+            log.info(f'login event {disconnect_message}')
+            if config.get().log_connect_disconnect_notices:
+                chat_queue.put_nowait(disconnect_message)
+        connect = re.compile(r'Verified GUID .* of player .*')
         if connect.match(message):
             parts = message.split()
-            status = parts[-1]
-            if status == 'disconnected':
-                name = ' '.join(parts[2:-1])
-            else:
-                name = ' '.join(parts[2:-2])
-            login_message = f'{name} {status}'
+            name = parts[6:]
+            login_message = f'{name} connected'
             log.info(f'login event {login_message}')
             if config.get().log_connect_disconnect_notices:
                 chat_queue.put_nowait(login_message)

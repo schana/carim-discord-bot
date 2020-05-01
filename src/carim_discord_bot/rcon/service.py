@@ -29,14 +29,20 @@ async def run_service(factory):
         transport.close()
         return
     log.debug('starting futures processor')
-    task = asyncio.create_task(process_futures(factory.future_queue, rcon_protocol))
+    process_futures_task = asyncio.create_task(process_futures(factory.future_queue, rcon_protocol))
     rcon_protocol: connection.RConProtocol = rcon_protocol
     log.debug('starting keep alive manager')
-    await keep_alive_manager(rcon_protocol, factory.event_queue)
+    keep_alive_task = asyncio.create_task(keep_alive_manager(rcon_protocol, factory.event_queue))
+    while True:
+        if process_futures_task.done():
+            process_futures_task = asyncio.create_task(process_futures(factory.future_queue, rcon_protocol))
+        if keep_alive_task.done():
+            break
+        await asyncio.sleep(.2)
     log.warning('keep alive manager died')
     rcon_protocol.logged_in = False
     rcon_protocol.logged_in_event.clear()
-    task.cancel()
+    process_futures_task.cancel()
     transport.close()
 
 
