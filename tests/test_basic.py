@@ -31,6 +31,7 @@ async def test_arg_parsing(monkeypatch):
         'rcon_ip': '127.0.0.1',
         'rcon_port': 42302,
         'rcon_password': 'password',
+        'steam_port': 42016,
         'rcon_admin_channels': [message.channel.id]
     }))
 

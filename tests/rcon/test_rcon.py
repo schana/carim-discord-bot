@@ -53,6 +53,7 @@ async def test_login_success_before_other_commands(event_loop: asyncio.BaseEvent
         'rcon_ip': '127.0.0.1',
         'rcon_port': 42302,
         'rcon_password': 'password',
+        'steam_port': 42016,
         'rcon_keep_alive_interval': .2,
     }))
     future_queue = asyncio.Queue()

@@ -16,6 +16,7 @@ from pkg_resources import resource_filename
 import carim_discord_bot
 from carim_discord_bot import config, message_builder, setup_instructions
 from carim_discord_bot.rcon import service, registrar, protocol, connection
+from carim_discord_bot.steam import query
 
 
 class BotArgumentParser(argparse.ArgumentParser):
@@ -281,27 +282,26 @@ async def update_player_count_manager():
 
 async def update_player_count():
     global current_count
-    future = await send_command('players')
+    loop = asyncio.get_running_loop()
+    future = loop.create_future()
+    await query.query(config.get().ip, config.get().steam_port, future)
     try:
         result = await asyncio.wait_for(future, 10)
     except (asyncio.TimeoutError, asyncio.CancelledError):
         log.warning('update player count query timed out')
         return
-    last_line: str = result.split('\n')[-1]
-    count_players = last_line.strip('()').split()[0]
-    try:
-        count_players = int(count_players)
-        if count_players != current_count:
-            await client.wait_until_ready()
-            channel: discord.TextChannel = client.get_channel(config.get().count_channel_id)
-            player_count_string = f'{count_players} player{"s" if count_players != 1 else ""} online'
-            await channel.edit(name=player_count_string)
-            if config.get().log_player_count_updates:
-                await event_queue.put(f'Update player count: {player_count_string}')
-            current_count = count_players
-        return result
-    except ValueError:
-        log.warning('invalid data from player count')
+
+    result: query.SteamData = result
+    count_players = result.players
+    if count_players != current_count:
+        await client.wait_until_ready()
+        channel: discord.TextChannel = client.get_channel(config.get().count_channel_id)
+        player_count_string = f'{count_players}/{result.max_players} players online'
+        await channel.edit(name=player_count_string)
+        if config.get().log_player_count_updates:
+            await event_queue.put(f'Update player count: {player_count_string}')
+        current_count = count_players
+    return result
 
 
 async def schedule_command_manager(index, command):

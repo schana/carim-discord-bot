@@ -2,6 +2,7 @@
   "token": "",
   "rcon_ip": "127.0.0.1",
   "rcon_port": 2302,
+  "steam_port": 27016,
   "rcon_password": "",
   "bot_presence": "--help | --about",
   "bot_presence_type": "playing",
