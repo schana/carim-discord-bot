@@ -226,7 +226,13 @@ async def process_safe_shutdown(delay=0):
 
 
 async def kick_everybody(message):
-    raw_players = await update_player_count()
+    await update_player_count()
+    future = await send_command('players')
+    try:
+        raw_players = await asyncio.wait_for(future, 10)
+    except (asyncio.TimeoutError, asyncio.CancelledError):
+        log.warning('player query timed out')
+        return
     count_players = 0 if current_count is None else current_count
     player_ids = range(count_players)
     if raw_players is not None:
