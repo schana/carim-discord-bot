@@ -85,3 +85,10 @@ def test_non_ascii_incoming_message():
     assert isinstance(p.payload, protocol.Message)
     expected = '(Global) Survivor: кто на кумырне сейчас?'
     assert p.payload.message == expected
+
+
+def test_non_ascii_outgoing_message():
+    command = 'say -1 кто на кумырне сейчас?'
+    p = protocol.Command(4, command=command)
+    expected = b'\x01\x04say -1 \xd0\xba\xd1\x82\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd1\x83\xd0\xbc\xd1\x8b\xd1\x80\xd0\xbd\xd0\xb5 \xd1\x81\xd0\xb5\xd0\xb9\xd1\x87\xd0\xb0\xd1\x81?'
+    assert expected == p.generate()
