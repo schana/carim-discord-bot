@@ -63,14 +63,7 @@ async def on_message(message):
         return
 
     if message.channel.id == config.get().chat_channel_id:
-        chat_message = f'Discord> {message.author.display_name}: {message.content}'
-        chat_future = await send_command(f'say -1 {chat_message}')
-        try:
-            await chat_future
-        except asyncio.CancelledError:
-            await message.channel.send(f'Failed to send: {chat_message}')
-        return
-
+        await process_chat(message)
     elif message.channel.id in config.get().admin_channels and message.content.startswith('--'):
         args = shlex.split(message.content, comments=True)
         try:
@@ -79,6 +72,18 @@ async def on_message(message):
             log.info(f'invalid command {message.content}')
             return
         await process_message_args(parsed_args, message)
+
+
+async def process_chat(message):
+    chat_message = f'Discord> {message.author.display_name}: {message.content}'
+    if len(chat_message) > 128:
+        await message.channel.send(f'Message too long: {chat_message}')
+        return
+    chat_future = await send_command(f'say -1 {chat_message}')
+    try:
+        await chat_future
+    except asyncio.CancelledError:
+        await message.channel.send(f'Failed to send: {chat_message}')
 
 
 async def process_message_args(parsed_args, message):
