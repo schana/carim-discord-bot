@@ -30,11 +30,9 @@ message_parser = BotArgumentParser(prog='', add_help=False, description='A helpf
                                    formatter_class=argparse.RawTextHelpFormatter)
 command_group = message_parser.add_argument_group('commands')
 command_group.add_argument('--help', action='store_true', help='displays this usage information')
-command_group.add_argument('--hello', action='store_true', help='says hello to the beloved user')
-command_group.add_argument('--random', nargs='?', type=int, default=argparse.SUPPRESS, metavar='num',
-                           help='generate a random number between 0 and 100 or num if specified')
 command_group.add_argument('--secret', action='store_true', help=argparse.SUPPRESS)
 command_group.add_argument('--about', action='store_true', help='display some information about the bot')
+command_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
 admin_group = message_parser.add_argument_group('admin commands')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
@@ -45,7 +43,6 @@ admin_group.add_argument('--schedule_status', action='store_true', help='show cu
 admin_group.add_argument('--schedule_skip', type=int, default=argparse.SUPPRESS, metavar='index',
                          help='skip next run of scheduled command')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
-admin_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
 future_queue = asyncio.Queue()
 event_queue = asyncio.Queue()
@@ -66,15 +63,8 @@ async def on_message(message):
         return
 
     if message.channel.id == config.get().chat_channel_id:
-        chat_message = f'Discord> {message.author.display_name}: {message.content}'
-        chat_future = await send_command(f'say -1 {chat_message}')
-        try:
-            await chat_future
-        except asyncio.CancelledError:
-            await message.channel.send(f'Failed to send: {chat_message}')
-        return
-
-    if message.content.startswith('--'):
+        await process_chat(message)
+    elif message.channel.id in config.get().admin_channels and message.content.startswith('--'):
         args = shlex.split(message.content, comments=True)
         try:
             parsed_args, _ = message_parser.parse_known_args(args)
@@ -84,28 +74,29 @@ async def on_message(message):
         await process_message_args(parsed_args, message)
 
 
+async def process_chat(message):
+    chat_message = f'Discord> {message.author.display_name}: {message.content}'
+    if len(chat_message) > 128:
+        await message.channel.send(f'Message too long: {chat_message}')
+        return
+    chat_future = await send_command(f'say -1 {chat_message}')
+    try:
+        await chat_future
+    except asyncio.CancelledError:
+        await message.channel.send(f'Failed to send: {chat_message}')
+
+
 async def process_message_args(parsed_args, message):
     if parsed_args.help:
-        include_admin = message.channel.id in config.get().admin_channels
-        embed = message_builder.build_embed(f'{"Admin " if include_admin else ""}Help',
-                                            format_help(include_admin=include_admin))
+        embed = message_builder.build_embed('Help', format_help(include_admin=True))
         await message.channel.send(embed=embed)
-    if parsed_args.hello:
-        word = random.choice(('Hello', 'Howdy', 'Greetings', 'Hiya', 'Hey'))
-        await message.channel.send(f'{word}, {message.author.display_name}!')
     if parsed_args.secret:
         await message.channel.send(f'Thank you, cnofafva, for giving me life!')
-    if 'random' in parsed_args:
-        if parsed_args.random is None:
-            parsed_args.random = 100
-        await message.channel.send(
-            embed=message_builder.build_embed(f'Random number: {random.randint(0, parsed_args.random)}'))
     if parsed_args.about:
         await message.channel.send(embed=message_builder.build_embed(
             'This bot is open source and can be built for any DayZ server\n'
             'For more information, visit https://github.com/schana/carim-discord-bot'))
-    if message.channel.id in config.get().admin_channels:
-        await process_admin_args(parsed_args, message)
+    await process_admin_args(parsed_args, message)
 
 
 async def process_admin_args(parsed_args, message):

@@ -98,7 +98,11 @@ class Command(Payload):
 
     def generate(self):
         packet = struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, COMMAND, self.sequence_number)
-        packet += bytes(self.command, encoding='ascii')
+        try:
+            command = bytes(self.command, encoding='ascii')
+        except UnicodeEncodeError:
+            command = bytes(self.command, encoding='utf-8')
+        packet += command
         return packet
 
     def __str__(self):
