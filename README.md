@@ -18,6 +18,8 @@ Table of Contents
 1. Run `pip3 install carim-discord-bot`
 1. Run `carim-bot --setup` and follow the instructions
 
+Alternatively, you can [deploy using Heroku](https://github.com/schana/carim-discord-bot-heroku).
+
 ## Update
 
 1. Run `pip3 install carim-discord-bot -U`
@@ -38,11 +40,9 @@ Table of Contents
 
 ```
 commands:
---help                displays this usage information
---hello               says hello to the beloved user
---random [num]        generate a random number between 0 and 100
-                      or num if specified
---about               display some information about the bot
+--help                     displays this usage information
+--about                    display some information about the bot
+--version                  display the current version of the bot
 
 admin commands:
 --command [command]        send command to the server, or list
@@ -55,7 +55,6 @@ admin commands:
 --schedule_status          show current scheduled item status
 --schedule_skip index      skip next run of scheduled command
 --kill                     make the bot terminate
---version                  display the current version of the bot
 ```
 
 ### Examples
