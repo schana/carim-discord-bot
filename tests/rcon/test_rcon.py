@@ -92,3 +92,31 @@ def test_non_ascii_outgoing_message():
     p = protocol.Command(4, command=command)
     expected = b'\x01\x04say -1 \xd0\xba\xd1\x82\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd1\x83\xd0\xbc\xd1\x8b\xd1\x80\xd0\xbd\xd0\xb5 \xd1\x81\xd0\xb5\xd0\xb9\xd1\x87\xd0\xb0\xd1\x81?'
     assert expected == p.generate()
+
+
+def test_split_rcon_parsing():
+    data = 'data from packet #1;'
+    packet = protocol.Packet(protocol.SplitCommand(5, data, 3, 1))
+    parsed = protocol.Packet.parse(packet.generate())
+    assert parsed.payload.data == data
+
+
+@pytest.mark.asyncio
+async def test_split_rcon(event_loop: asyncio.BaseEventLoop):
+    future = event_loop.create_future()
+    future2 = event_loop.create_future()
+    count_packets = 3
+    seq = 5
+    expected_data = ''
+    await registrar.register(seq, future)
+    await registrar.register(seq + 1, future2)
+    for i in range(count_packets):
+        payload_data = f'data from packet #{i};'
+        expected_data += payload_data
+        for j in range(2):
+            payload = protocol.SplitCommand(seq + j, payload_data, count_packets, i)
+            await registrar.incoming(seq + j, protocol.Packet(payload))
+    await future
+    assert future.result().payload.data == expected_data
+    await future2
+    assert future2.result().payload.data == expected_data
