@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import pathlib
-import random
 import re
 import shlex
 import sys

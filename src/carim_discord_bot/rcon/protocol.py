@@ -8,6 +8,8 @@ FORMAT_PREFIX = '='
 HEADER_FORMAT = 'BBIB'
 PACKET_TYPE_FORMAT = 'B'
 SEQUENCE_NUMBER_FORMAT = 'B'
+SPLIT_HEADER_FORMAT = 'BBB'
+SPLIT_HEADER_SIZE = struct.calcsize(FORMAT_PREFIX + SPLIT_HEADER_FORMAT)
 HEADER_SIZE = struct.calcsize(FORMAT_PREFIX + HEADER_FORMAT)
 LOGIN = 0x00
 COMMAND = 0x01
@@ -67,6 +69,9 @@ class Payload:
     def __str__(self):
         raise NotImplementedError
 
+    def is_split(self):
+        return False
+
 
 class Login(Payload):
     def __init__(self, password=None, success=False):
@@ -94,7 +99,12 @@ class Command(Payload):
     @staticmethod
     def parse(data):
         sequence_number = struct.unpack_from(FORMAT_PREFIX + SEQUENCE_NUMBER_FORMAT, data)[0]
-        return Command(sequence_number, data=str(data[1:], encoding='ascii'))
+        if len(data) > 1 and data[1] == 0x00:
+            return SplitCommand.parse(data)
+        try:
+            return Command(sequence_number, data=str(data[1:], encoding='ascii'))
+        except UnicodeDecodeError:
+            return Command(sequence_number, data=str(data[1:], encoding='utf-8'))
 
     def generate(self):
         packet = struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, COMMAND, self.sequence_number)
@@ -108,6 +118,41 @@ class Command(Payload):
     def __str__(self):
         single_line = self.data.replace('\n', '|')
         return f'Command <{single_line}>'
+
+
+class SplitCommand(Payload):
+    def __init__(self, sequence_number, data, count, index):
+        self.sequence_number = sequence_number
+        self.data = data
+        self.count = count
+        self.index = index
+
+    def generate(self):
+        packet = struct.pack(FORMAT_PREFIX + PACKET_TYPE_FORMAT + SEQUENCE_NUMBER_FORMAT, COMMAND, self.sequence_number)
+        packet += struct.pack(FORMAT_PREFIX + SPLIT_HEADER_FORMAT, 0x00, self.count, self.index)
+        try:
+            data = bytes(self.data, encoding='ascii')
+        except UnicodeEncodeError:
+            data = bytes(self.data, encoding='utf-8')
+        packet += data
+        return packet
+
+    def __str__(self):
+        single_line = self.data.replace('\n', '|')
+        return f'SplitCommand <{single_line}>'
+
+    @staticmethod
+    def parse(data):
+        sequence_number = struct.unpack_from(FORMAT_PREFIX + SEQUENCE_NUMBER_FORMAT, data)[0]
+        _, count, index = struct.unpack_from(FORMAT_PREFIX + SPLIT_HEADER_FORMAT, data[1:])
+        try:
+            data = str(data[1 + SPLIT_HEADER_SIZE:], encoding='ascii')
+        except UnicodeDecodeError:
+            data = str(data[1 + SPLIT_HEADER_SIZE:], encoding='utf-8')
+        return SplitCommand(sequence_number, data, count, index)
+
+    def is_split(self):
+        return True
 
 
 class Message(Payload):
