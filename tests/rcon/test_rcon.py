@@ -6,7 +6,7 @@ from typing import Union, Text, Tuple
 import pytest
 
 from carim_discord_bot import config
-from carim_discord_bot.rcon import service, protocol, registrar
+from carim_discord_bot.rcon import service, protocol, registrar, connection
 from carim_discord_bot.rcon.protocol import FORMAT_PREFIX, PACKET_TYPE_FORMAT, SEQUENCE_NUMBER_FORMAT
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s - %(message)s')
@@ -115,7 +115,7 @@ async def test_split_rcon(event_loop: asyncio.BaseEventLoop):
         expected_data += payload_data
         for j in range(2):
             payload = protocol.SplitCommand(seq + j, payload_data, count_packets, i)
-            await registrar.incoming(seq + j, protocol.Packet(payload))
+            connection.process_packet(protocol.Packet(payload), None, None)
     await future
     assert future.result().payload.data == expected_data
     await future2

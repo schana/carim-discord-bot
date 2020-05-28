@@ -54,7 +54,7 @@ class RConProtocol(asyncio.DatagramProtocol):
 
 
 def process_packet(packet, event_queue: asyncio.Queue, chat_queue: asyncio.Queue):
-    if isinstance(packet.payload, protocol.Command):
+    if isinstance(packet.payload, protocol.Command) or isinstance(packet.payload, protocol.SplitCommand):
         asyncio.create_task(registrar.incoming(packet.payload.sequence_number, packet))
     elif isinstance(packet.payload, protocol.Message):
         message = packet.payload.message
