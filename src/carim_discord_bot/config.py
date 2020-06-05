@@ -1,6 +1,8 @@
 import json
 import logging
 
+from carim_discord_bot import message_builder
+
 log = logging.getLogger(__name__)
 
 
@@ -8,7 +10,7 @@ class Config:
     def __init__(self, token, ip, port, password, steam_port, presence, presence_type, publish_channel_id,
                  admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id, update_player_count_interval,
                  rcon_keep_alive_interval, log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages,
-                 log_rcon_keep_alive, include_timestamp, debug, scheduled_commands):
+                 log_rcon_keep_alive, include_timestamp, debug, scheduled_commands, custom_commands):
         self.token = token
         self.ip = ip
         self.port = port
@@ -30,6 +32,7 @@ class Config:
         self.include_timestamp = include_timestamp
         self.debug = debug
         self.scheduled_commands = scheduled_commands
+        self.custom_commands = custom_commands
 
     @staticmethod
     def build_from_dict(config):
@@ -81,11 +84,16 @@ class Config:
             log.error(message)
             raise ValueError(message)
 
+        config_custom_commands = config.get('custom_commands', list())
+        custom_commands = list()
+        for raw_command in config_custom_commands:
+            custom_commands.append(message_builder.Response(raw_command))
+
         return Config(token, ip, port, password, steam_port, presence, presence_type, publish_channel_id,
                       admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id,
                       update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
                       log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug,
-                      scheduled_commands)
+                      scheduled_commands, custom_commands)
 
     @staticmethod
     def check_channel_default(channel=None, channels: list = None):

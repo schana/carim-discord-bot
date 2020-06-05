@@ -72,6 +72,17 @@ async def on_message(message):
             return
         await process_message_args(parsed_args, message)
 
+    for custom_command in config.get().custom_commands:
+        custom_command: message_builder.Response = custom_command
+        if custom_command.enabled:
+            if message.channel.id in custom_command.channels:
+                if re.match(custom_command.command, message.content):
+                    embed = custom_command.generate()
+                    if len(embed) <= 6000:
+                        await message.channel.send(embed=custom_command.generate())
+                    else:
+                        await message.channel.send(f'Message longer than 6000 character limit: {len(embed)}')
+
 
 async def process_chat(message):
     chat_message = f'Discord> {message.author.display_name}: {message.content}'

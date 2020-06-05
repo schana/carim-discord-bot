@@ -35,5 +35,42 @@
       "interval": 400,
       "offset": 0
     }
+  ],
+  "custom_commands": [
+    {
+      "enabled": true,
+      "channels": [],
+      "command": ".*asdf.*",
+      "response": {
+        "title": "Response Title",
+        "text": "{user} typed asdf",
+        "url": "https://example.com",
+        "color": 2733814,
+        "image": {
+          "url": "",
+          "width": 100,
+          "height": 100
+        },
+        "video": {
+          "url": "",
+          "width": 100,
+          "height": 100
+        },
+        "thumbnail": {
+          "url": "",
+          "width": 100,
+          "height": 100
+        },
+        "author": {
+          "name": "Author Name",
+          "url": "",
+          "icon_url": ""
+        },
+        "footer": {
+          "text": "Footer text",
+          "icon_url": "https://example.com/favicon.ico"
+        }
+      }
+    }
   ]
 }
