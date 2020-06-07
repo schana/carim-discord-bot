@@ -35,5 +35,25 @@
       "interval": 400,
       "offset": 0
     }
+  ],
+  "custom_commands": [
+    {
+      "enabled": true,
+      "command": ".*[Cc]arim.*",
+      "response": {
+        "title": "Carim DayZ Project",
+        "description": "Open Source projects for the DayZ community",
+        "url": "https://schana.github.io/carim/",
+        "color": 9662011,
+        "thumbnail": {
+          "url": "https://github.com/schana/dayz-server-carim/raw/master/Carim.png"
+        },
+        "author": {
+          "name": "cnofafva",
+          "url": "https://github.com/schana",
+          "icon_url": "https://github.com/schana.png"
+        }
+      }
+    }
   ]
 }

@@ -32,6 +32,12 @@
     "with_clock": "Whether the interval should be aligned with the clock instead of relative",
     "offset": "Delay in seconds from bot startup to running the command, or offset from midnight if with_clock is true"
   },
+  "custom_commands": {
+    "enabled": "Whether the command is enabled",
+    "channels": "List of channel ids to enable the command for. If not present or empty, command will work in every channel",
+    "command": "Regex pattern that, if matched, will trigger the command",
+    "response": "Discord embed object as described by https://discord.com/developers/docs/resources/channel#embed-object"
+  },
   "deprecated": {
     "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"
   }

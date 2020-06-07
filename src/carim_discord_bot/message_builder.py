@@ -1,8 +1,24 @@
 import datetime
+import logging
 
 import discord
 
 from carim_discord_bot import config
+
+log = logging.getLogger(__name__)
+
+
+class Response:
+    def __init__(self, configuration):
+        self.enabled = configuration.get('enabled', True)
+        self.channels = configuration.get('channels', list())
+        self.command = configuration['command']
+        self.response = configuration['response']
+
+    def generate(self):
+        embed = discord.Embed.from_dict(self.response)
+        log.info(f'generated embed: {embed.to_dict()}')
+        return embed
 
 
 def build_embed(title=None, message=None):

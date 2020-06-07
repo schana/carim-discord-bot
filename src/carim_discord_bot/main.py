@@ -72,6 +72,17 @@ async def on_message(message):
             return
         await process_message_args(parsed_args, message)
 
+    for custom_command in config.get().custom_commands:
+        custom_command: message_builder.Response = custom_command
+        if custom_command.enabled:
+            if message.channel.id in custom_command.channels or len(custom_command.channels) == 0:
+                if re.match(custom_command.command, message.content):
+                    embed = custom_command.generate()
+                    if len(embed) <= 6000:
+                        await message.channel.send(embed=embed)
+                    else:
+                        await message.channel.send(f'Message longer than 6000 character limit: {len(embed)}')
+
 
 async def process_chat(message):
     chat_message = f'Discord> {message.author.display_name}: {message.content}'
@@ -414,6 +425,7 @@ def main():
     protocol.log.setLevel(log_level)
     service.log.setLevel(log_level)
     config.log.setLevel(log_level)
+    message_builder.log.setLevel(log_level)
 
     loop = asyncio.get_event_loop()
     loop.set_exception_handler(loop_exception_handler)
