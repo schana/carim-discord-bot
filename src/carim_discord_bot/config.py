@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 class Config:
     def __init__(self, token, ip, port, password, steam_port, presence, presence_type, publish_channel_id,
-                 admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id, update_player_count_interval,
+                 admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id, player_count_format, update_player_count_interval,
                  rcon_keep_alive_interval, log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages,
                  log_rcon_keep_alive, include_timestamp, debug, scheduled_commands, custom_commands):
         self.token = token
@@ -23,6 +23,7 @@ class Config:
         self.chat_channel_id = chat_channel_id
         self.chat_ignore_regex = chat_ignore_regex
         self.count_channel_id = count_channel_id
+        self.player_count_format = player_count_format
         self.update_player_count_interval = update_player_count_interval
         self.rcon_keep_alive_interval = rcon_keep_alive_interval
         self.log_connect_disconnect_notices = log_connect_disconnect_notices
@@ -64,7 +65,7 @@ class Config:
         chat_channel_id = Config.check_channel_default(channel=config.get('rcon_chat_channel'))
         chat_ignore_regex = config.get('rcon_chat_ignore_regex', r'^$')
         count_channel_id = Config.check_channel_default(channel=config.get('rcon_count_channel'))
-
+        player_count_format = config.get('player_count_format', '{players}/{slots} players online')
         update_player_count_interval = config.get('update_player_count_interval', 300)
         rcon_keep_alive_interval = config.get('rcon_keep_alive_interval', 30)
 
@@ -90,7 +91,7 @@ class Config:
             custom_commands.append(message_builder.Response(raw_command))
 
         return Config(token, ip, port, password, steam_port, presence, presence_type, publish_channel_id,
-                      admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id,
+                      admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id, player_count_format,
                       update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
                       log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug,
                       scheduled_commands, custom_commands)

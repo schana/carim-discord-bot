@@ -14,6 +14,7 @@
     "rcon_chat_ignore_regex": "Pattern that, if matched, will not publish the message to the chat channel",
     "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
     "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count",
+    "player_count_format": "Format for setting the channel name using {players} and {slots} as placeholders for the values",
     "update_player_count_interval": "Time, in seconds, between player count update queries",
     "rcon_keep_alive_interval": "Time, in seconds, between RCon keep alive messages. The connection times out at around 45 seconds",
     "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"

@@ -303,7 +303,7 @@ async def update_player_count():
     if count_players != current_count:
         await client.wait_until_ready()
         channel: discord.TextChannel = client.get_channel(config.get().count_channel_id)
-        player_count_string = f'{count_players}/{result.max_players} players online'
+        player_count_string = config.get().player_count_format.format(players=count_players, slots=result.max_players)
         await channel.edit(name=player_count_string)
         if config.get().log_player_count_updates:
             await event_queue.put(f'Update player count: {player_count_string}')
