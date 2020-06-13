@@ -19,6 +19,7 @@ class Config:
         self.presence = presence
         self.presence_type = presence_type
         self.publish_channel_id = publish_channel_id
+        self.rcon_admin_log_channel_id = self.publish_channel_id
         self.admin_channels = admin_channels
         self.chat_channel_id = chat_channel_id
         self.chat_ignore_regex = chat_ignore_regex
