@@ -39,12 +39,16 @@ class ManagedService:
         await self.stop()
         await self.start()
 
+    async def send_message(self, message: Message):
+        await self.message_queue.put(message)
+
     async def _message_processor(self):
         while True:
             message = await self.message_queue.get()
             await self._handle_message(message)
 
     async def _handle_message(self, message: Message):
+        log.info(f'received message in {type(self).__name__} of type {type(message).__name__}')
         if isinstance(message, Stop):
             await self.stop()
         elif isinstance(message, Restart):
