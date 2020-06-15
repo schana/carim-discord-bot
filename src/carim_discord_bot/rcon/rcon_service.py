@@ -3,6 +3,9 @@ from carim_discord_bot.managed_service import Message
 
 
 class RconService(managed_service.ManagedService):
+    def __init__(self, server_name):
+        super().__init__()
+        self.server_name = server_name
 
     async def service(self):
         pass
@@ -11,11 +14,10 @@ class RconService(managed_service.ManagedService):
         pass
 
 
-service = None
+services = dict()
 
 
-def get_service_manager():
-    global service
-    if service is None:
-        service = RconService()
-    return service
+def get_service_manager(server_name):
+    if server_name not in services:
+        services[server_name] = RconService(server_name)
+    return services[server_name]

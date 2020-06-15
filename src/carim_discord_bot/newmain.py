@@ -11,6 +11,7 @@ import carim_discord_bot
 from carim_discord_bot import setup_instructions, config
 from carim_discord_bot.discord_client import discord_service
 from carim_discord_bot.rcon import rcon_service
+from carim_discord_bot.services import player_count, scheduled_command
 from carim_discord_bot.steam import steam_service
 
 LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s - %(message)s'
@@ -56,8 +57,7 @@ def setup_configuration(config_argument):
             p = pathlib.Path('/etc/carim/config.json')
             if p.is_file():
                 config_argument = p
-    settings = config.Config.build_from(config_argument)
-    config.set(settings)
+    config.initialize(config_argument)
 
 
 def set_log_verbosity(verbosity):
@@ -65,7 +65,7 @@ def set_log_verbosity(verbosity):
         verbosity = max(verbosity, 1)
 
     if verbosity > 0:
-        logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+        logging.getLogger(carim_discord_bot.__name__).setLevel(logging.DEBUG)
 
 
 def start_event_loop():
@@ -79,9 +79,19 @@ def loop_exception_handler(loop, context):
 
 
 async def start_service_managers():
-    await steam_service.get_service_manager().start()
     await discord_service.get_service_manager().start()
-    await rcon_service.get_service_manager().start()
+
+    for server_name in config.get_server_names():
+        await steam_service.get_service_manager(server_name).start()
+        await rcon_service.get_service_manager(server_name).start()
+        if config.get_server(server_name).player_count_channel_id is not None:
+            await player_count.get_service_manager(server_name).start()
+        scheduled_command_index = 0
+        for command in config.get_server(server_name).scheduled_commands:
+            sm = scheduled_command.get_service_manager(server_name, scheduled_command_index)
+            sm.set_command(command)
+            await sm.start()
+            scheduled_command_index += 1
 
 
 def run_bot():

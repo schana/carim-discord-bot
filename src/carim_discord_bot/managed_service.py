@@ -5,8 +5,9 @@ log = logging.getLogger(__name__)
 
 
 class Message:
-    def __init__(self):
+    def __init__(self, server_name):
         self.result = asyncio.get_event_loop().create_future()
+        self.server_name = server_name
 
 
 class Stop(Message):
@@ -48,7 +49,7 @@ class ManagedService:
             await self._handle_message(message)
 
     async def _handle_message(self, message: Message):
-        log.info(f'received message in {type(self).__name__} of type {type(message).__name__}')
+        log.info(f'{message.server_name}: received message in {type(self).__name__} of type {type(message).__name__}')
         if isinstance(message, Stop):
             await self.stop()
         elif isinstance(message, Restart):
