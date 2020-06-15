@@ -49,7 +49,7 @@ class ManagedService:
             await self._handle_message(message)
 
     async def _handle_message(self, message: Message):
-        log.info(f'{message.server_name}: received message in {type(self).__name__} of type {type(message).__name__}')
+        log.debug(f'{message.server_name}: received message in {type(self).__name__} of type {type(message).__name__}')
         if isinstance(message, Stop):
             await self.stop()
         elif isinstance(message, Restart):

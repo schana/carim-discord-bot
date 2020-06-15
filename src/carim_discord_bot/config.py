@@ -14,6 +14,8 @@ class GlobalConfig:
         self.presence = None
         self.presence_type = None
         self.debug = False
+        self.log_player_count_updates = True
+        self.log_messages_include_timestamp = False
         self.custom_commands = list()
 
 
@@ -34,10 +36,8 @@ class ServerConfig:
         self.player_count_format = '{players}/{slots} players online'
         self.player_count_update_interval = 30
 
-        self.log_player_count_updates = True
         self.log_rcon_messages = True
         self.log_rcon_keep_alive = False
-        self.log_messages_include_timestamp = False
 
         self.scheduled_commands = list()
 

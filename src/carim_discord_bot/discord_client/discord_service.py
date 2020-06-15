@@ -18,6 +18,12 @@ class PlayerCount(managed_service.Message):
         self.slots = slots
 
 
+class Chat(managed_service.Message):
+    def __init__(self, server_name, content):
+        super().__init__(server_name)
+        self.content = content
+
+
 class Log(managed_service.Message):
     def __init__(self, server_name, text):
         super().__init__(server_name)
@@ -63,19 +69,24 @@ class DiscordService(managed_service.ManagedService):
     async def handle_message(self, message: Message):
         await self.client.wait_until_ready()
         if isinstance(message, PlayerCount):
-            channel: discord.TextChannel = self.client.get_channel(
-                config.get_server(message.server_name).player_count_channel_id)
-            player_count_string = config.get_server(message.server_name).player_count_format.format(
-                players=message.count, slots=message.slots)
-            if datetime.timedelta(minutes=5) <\
-                    datetime.datetime.now() - self.last_player_count_update[message.server_name]:
-                # Rate limit is triggered when updating a channel name too often, so we need to
-                # put a hard limit on how often the player count channel gets updated
-                await channel.edit(name=player_count_string)
-                self.last_player_count_update[message.server_name] = datetime.datetime.now()
+            await self.handle_player_count_message(message)
         elif isinstance(message, Log):
-            log.info(f'{message.server_name}: {message.text}')
-            self.log_rollup[message.server_name].append(message.text)
+            log.info(f'log {message.server_name}: {message.text}')
+            self.log_rollup[message.server_name].append(f'{message.server_name}: {message.text}')
+        elif isinstance(message, Chat):
+            log.info(f'chat {message.server_name}: {message.content}')
+
+    async def handle_player_count_message(self, message: PlayerCount):
+        channel: discord.TextChannel = self.client.get_channel(
+            config.get_server(message.server_name).player_count_channel_id)
+        player_count_string = config.get_server(message.server_name).player_count_format.format(
+            players=message.count, slots=message.slots)
+        if datetime.timedelta(minutes=5) < \
+                datetime.datetime.now() - self.last_player_count_update[message.server_name]:
+            # Rate limit is triggered when updating a channel name too often, so we need to
+            # put a hard limit on how often the player count channel gets updated
+            await channel.edit(name=player_count_string)
+            self.last_player_count_update[message.server_name] = datetime.datetime.now()
 
     async def flush_log(self):
         await self.client.wait_until_ready()

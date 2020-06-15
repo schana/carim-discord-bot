@@ -27,7 +27,7 @@ def build_embed(title=None, message=None):
         title = None
     embed_args = dict(title=title, description=message)
     embed = discord.Embed(**embed_args)
-    if config.get().include_timestamp:
+    if config.get().log_messages_include_timestamp:
         timestamp = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
         embed.set_footer(text=timestamp)
     return embed
