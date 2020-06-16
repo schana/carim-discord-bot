@@ -93,9 +93,9 @@ class RconService(managed_service.ManagedService):
         elif not self.rcon_protocol.logged_in:
             log.warning(f'{self.server_name} not logged in, cancelling command: {command}')
             future.cancel()
-        elif command.command.split()[0] in VALID_COMMANDS:
+        elif command.split()[0] in VALID_COMMANDS:
             seq_number = await self.rcon_registrar.get_next_sequence_number()
-            packet = protocol.Packet(protocol.Command(seq_number, command=command.command))
+            packet = protocol.Packet(protocol.Command(seq_number, command=command))
             command_future = asyncio.get_running_loop().create_future()
             await self.rcon_registrar.register(packet.payload.sequence_number, command_future)
             self.rcon_protocol.send_rcon_datagram(packet.generate())

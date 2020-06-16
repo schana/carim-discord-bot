@@ -21,7 +21,8 @@ class CarimClient(discord.Client):
 
         for server_name in config.get_server_names():
             if message.channel.id == config.get_server(server_name).chat_channel_id:
-                await arguments.process_chat(message)
+                await arguments.process_chat(server_name, message)
+                return
             elif message.channel.id == config.get_server(server_name).admin_channel_id \
                     and message.content.startswith('--'):
                 args = shlex.split(message.content, comments=True)
@@ -30,7 +31,8 @@ class CarimClient(discord.Client):
                 except (ValueError, argparse.ArgumentError):
                     log.info(f'invalid command {message.content}')
                     return
-                await arguments.process_message_args(parsed_args, message)
+                await arguments.process_message_args(server_name, parsed_args, message)
+                return
 
         for custom_command in config.get().custom_commands:
             custom_command: message_builder.Response = custom_command
