@@ -15,7 +15,6 @@ class GlobalConfig:
         self.presence_type = None
         self.debug = False
         self.log_player_count_updates = True
-        self.log_messages_include_timestamp = False
         self.custom_commands = list()
 
 
