@@ -22,6 +22,7 @@ def main():
     parse_parameters()
     start_event_loop()
     asyncio.get_event_loop().run_until_complete(start_service_managers())
+    asyncio.get_event_loop().create_task(debug_tasks())
     run_bot()
 
 
@@ -74,6 +75,7 @@ def start_event_loop():
 
 
 def loop_exception_handler(loop, context):
+    log.error(context)
     loop.default_exception_handler(context)
     loop.stop()
 
@@ -92,6 +94,12 @@ async def start_service_managers():
             sm.set_command(command)
             await sm.start()
             scheduled_command_index += 1
+
+
+async def debug_tasks():
+    while False:
+        print('\n'.join(str(task) for task in list(asyncio.all_tasks())))
+        await asyncio.sleep(28)
 
 
 def run_bot():

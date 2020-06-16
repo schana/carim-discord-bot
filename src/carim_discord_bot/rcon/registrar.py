@@ -8,7 +8,8 @@ DEFAULT_TIMEOUT = 10
 
 
 class Registrar:
-    def __init__(self):
+    def __init__(self, server_name):
+        self.server_name = server_name
         self.tasks = dict()
         self.splits = dict()
         self.sequence_number = 0
@@ -23,22 +24,22 @@ class Registrar:
 
     async def reset(self):
         async with self.lock:
-            log.debug('reset')
+            log.debug(f'{self.server_name} reset')
             keys = list(self.tasks.keys())
             for key in keys:
-                log.debug(f'cancelling {key}')
+                log.debug(f'{self.server_name} cancelling {key}')
                 future = self.tasks.pop(key, None)
                 if future is not None:
                     future.cancel()
             self.sequence_number = 0
 
     async def register(self, key, future: asyncio.Future, timeout=DEFAULT_TIMEOUT):
-        log.debug(f'register key {key}')
+        log.debug(f'{self.server_name} register key {key}')
         self.tasks[key] = future
         asyncio.get_running_loop().create_task(self.wait_for_timeout(key, future, timeout))
 
     async def incoming(self, key, packet):
-        log.debug(f'incoming key {key} and type {type(packet.payload)}')
+        log.debug(f'{self.server_name} incoming key {key} and type {type(packet.payload)}')
 
         if not packet.payload.is_split():
             future = self.tasks.pop(key)
@@ -57,9 +58,9 @@ class Registrar:
                 self.splits[key] = split
 
     async def wait_for_timeout(self, key, future, timeout):
-        log.debug(f'waiting for key {key}')
+        log.debug(f'{self.server_name} waiting for key {key}')
         try:
             await asyncio.wait_for(future, timeout)
         except asyncio.TimeoutError:
-            log.debug(f'timeout waiting for key {key}')
+            log.debug(f'{self.server_name} timeout waiting for key {key}')
             await self.reset()

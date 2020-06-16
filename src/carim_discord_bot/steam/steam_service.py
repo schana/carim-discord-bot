@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from carim_discord_bot import managed_service, config
@@ -22,7 +23,8 @@ class SteamService(managed_service.ManagedService):
                               message.result)
 
     async def service(self):
-        pass
+        while True:
+            await asyncio.sleep(1)
 
 
 services = dict()

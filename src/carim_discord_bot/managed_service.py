@@ -20,28 +20,44 @@ class Restart(Message):
 
 class ManagedService:
     def __init__(self):
-        log.info(f'initializing service {type(self).__name__}')
+        log.debug(f'{self._get_server_name_if_present()}initializing service {type(self).__name__}')
         self.message_queue = asyncio.Queue()
         self.tasks = []
 
+    def _get_server_name_if_present(self):
+        if hasattr(self, 'server_name'):
+            return self.server_name + ' '
+        return ''
+
     async def start(self):
-        log.info(f'starting service {type(self).__name__}')
+        log.info(f'{self._get_server_name_if_present()}starting service {type(self).__name__}')
         self.tasks.append(asyncio.create_task(self._message_processor()))
         self.tasks.append(asyncio.create_task(self.service()))
+        self.tasks.append(asyncio.create_task(self._status_checker()))
 
     async def stop(self):
-        log.info(f'stopping service {type(self).__name__}')
+        log.debug(f'{self._get_server_name_if_present()}stopping service {type(self).__name__}')
         for task in self.tasks:
             task.cancel()
         self.tasks = []
 
     async def restart(self):
-        log.info(f'restarting service {type(self).__name__}')
+        log.debug(f'{self._get_server_name_if_present()}restarting service {type(self).__name__}')
         await self.stop()
         await self.start()
 
     async def send_message(self, message: Message):
         await self.message_queue.put(message)
+
+    async def _status_checker(self):
+        await asyncio.sleep(1)
+        while True:
+            for task in self.tasks:
+                task: asyncio.Task = task
+                if task.done():
+                    log.warning(f'{self._get_server_name_if_present()}something crashed {type(self).__name__}')
+                    await self.send_message(Restart(None))
+            await asyncio.sleep(1)
 
     async def _message_processor(self):
         while True:
@@ -49,7 +65,7 @@ class ManagedService:
             await self._handle_message(message)
 
     async def _handle_message(self, message: Message):
-        log.debug(f'{message.server_name}: received message in {type(self).__name__} of type {type(message).__name__}')
+        log.debug(f'{message.server_name} received message in {type(self).__name__} of type {type(message).__name__}')
         if isinstance(message, Stop):
             await self.stop()
         elif isinstance(message, Restart):
