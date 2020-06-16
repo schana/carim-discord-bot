@@ -3,6 +3,8 @@ import datetime
 import logging
 
 from carim_discord_bot import managed_service, config
+from carim_discord_bot.discord_client import discord_service
+from carim_discord_bot.rcon import rcon_service
 
 log = logging.getLogger(__name__)
 
@@ -12,10 +14,8 @@ class ScheduledCommand(managed_service.ManagedService):
         super().__init__()
         self.server_name = server_name
         self.index = index
-        self.command = None
-
-    def set_command(self, command):
-        self.command = command
+        self.command = config.get_server(self.server_name).scheduled_commands[self.index]
+        self.command['next'] = 'unknown'
 
     async def handle_message(self, message: managed_service.Message):
         pass
@@ -25,47 +25,54 @@ class ScheduledCommand(managed_service.ManagedService):
             await asyncio.sleep(self.command.get('offset', 0))
         while True:
             await self.schedule_command()
-            await asyncio.sleep(config.get().update_player_count_interval)
+            await asyncio.sleep(self.command['interval'])
 
     async def schedule_command(self):
-        interval = self.command.get('interval')
+        interval = self.command['interval']
         if self.command.get('with_clock', False):
-            offset = self.command.get('offset', 0)
-            await self.wait_for_aligned_time(index, interval, offset)
+            await self.wait_for_aligned_time()
         else:
             time_left = interval
             while time_left > 0:
-                scheduled_commands[index]['next'] = time_left
+                self.command['next'] = time_left
                 await asyncio.sleep(2)
                 time_left -= 2
-        scheduled_commands[index]['next'] = 'now'
-        if scheduled_commands[index].get('skip', False):
-            await event_queue.put(f'Skipping scheduled command: {self.command.get("command")}')
-            del scheduled_commands[index]['skip']
+        self.command['next'] = 'now'
+        if self.command.get('skip', False):
+            await discord_service.get_service_manager().send_message(
+                discord_service.Log(self.server_name, f'Skipping scheduled command: {self.command.get("command")}')
+            )
+            del self.command['skip']
         else:
             if self.command.get('command') == 'safe_shutdown':
-                await process_safe_shutdown(delay=self.command.get('delay', 0))
+                await rcon_service.get_service_manager(self.server_name).send_message(
+                    rcon_service.SafeShutdown(self.server_name, self.command.get('delay', 0))
+                )
             else:
-                await send_command(self.command.get('command'))
+                await rcon_service.get_service_manager(self.server_name).send_message(
+                    rcon_service.Command(self.server_name, self.command['command'])
+                )
 
-    async def wait_for_aligned_time(self, index, interval, offset):
+    async def wait_for_aligned_time(self):
         while True:
-            if self.is_time_aligned(interval, offset):
-                if scheduled_commands[index]['next'] == 'now':
+            if self.is_time_aligned():
+                if self.command['next'] == 'now':
                     await asyncio.sleep(2)
                 else:
                     break
             else:
-                scheduled_commands[index]['next'] = get_time_to_next_command(interval, offset)
+                self.command['next'] = self.get_time_to_next_command()
                 await asyncio.sleep(2)
 
-    def is_time_aligned(self, interval, offset):
-        if self.get_time_to_next_command(interval, offset) < 5:
+    def is_time_aligned(self):
+        if self.get_time_to_next_command() < 5:
             return True
         else:
             return False
 
-    def get_time_to_next_command(self, interval, offset):
+    def get_time_to_next_command(self):
+        interval = self.command['interval']
+        offset = self.command.get('offset', 0)
         now = datetime.datetime.now()
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         day_elapsed = (now - midnight).total_seconds() - offset

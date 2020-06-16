@@ -5,8 +5,9 @@ import json
 import sys
 
 import carim_discord_bot
-from carim_discord_bot import message_builder
+from carim_discord_bot import message_builder, config
 from carim_discord_bot.rcon import rcon_service
+from carim_discord_bot.services import scheduled_command
 
 
 class BotArgumentParser(argparse.ArgumentParser):
@@ -52,16 +53,16 @@ def format_help():
 
 
 async def process_chat(server_name, message):
-    # chat_message = f'Discord> {message.author.display_name}: {message.content}'
-    # if len(chat_message) > 128:
-    #     await message.channel.send(f'Message too long: {chat_message}')
-    #     return
-    # chat_future = await send_command(f'say -1 {chat_message}')
-    # try:
-    #     await chat_future
-    # except asyncio.CancelledError:
-    #     await message.channel.send(f'Failed to send: {chat_message}')
-    pass
+    chat_message = f'Discord> {message.author.display_name}: {message.content}'
+    if len(chat_message) > 128:
+        await message.channel.send(f'Message too long: {chat_message}')
+        return
+    rcon_message = rcon_service.Command(server_name, f'say -1 {chat_message}')
+    await rcon_service.get_service_manager(server_name).send_message(rcon_message)
+    try:
+        await rcon_message.result
+    except asyncio.CancelledError:
+        await message.channel.send(f'Failed to send: {chat_message}')
 
 
 async def process_message_args(server_name, parsed_args, message):
@@ -103,18 +104,19 @@ async def process_admin_args(server_name, parsed_args, message):
                 await process_safe_shutdown()
     if parsed_args.schedule_status:
         commands_info = list()
-        for i, sc in enumerate(scheduled_commands):
-            next_run = sc['next']
+        commands_config = config.get_server(server_name).scheduled_commands
+        for i, command_config in enumerate(commands_config):
+            sc = scheduled_command.get_service_manager(server_name, i)
+            next_run = sc.command['next']
             if not isinstance(next_run, str):
                 next_run = datetime.timedelta(seconds=next_run)
                 next_run -= datetime.timedelta(microseconds=next_run.microseconds)
                 next_run = str(next_run)
             c_info = dict(index=i,
-                          command=sc['command']['command'],
-                          alive=not sc['task'].done(),
-                          interval=sc['command']['interval'],
+                          command=sc.command['command'],
+                          interval=sc.command['interval'],
                           next_run=next_run)
-            if sc.get('skip', False):
+            if sc.command.get('skip', False):
                 c_info['skip_next'] = True
             commands_info.append(c_info)
         await message.channel.send(embed=message_builder.build_embed(

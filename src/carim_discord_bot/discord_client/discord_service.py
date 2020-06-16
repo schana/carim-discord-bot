@@ -75,6 +75,10 @@ class DiscordService(managed_service.ManagedService):
             self.log_rollup[message.server_name].append(f'{message.server_name}: {message.text}')
         elif isinstance(message, Chat):
             log.info(f'chat {message.server_name}: {message.content}')
+            channel_id = config.get_server(message.server_name).chat_channel_id
+            if channel_id:
+                channel: discord.TextChannel = self.client.get_channel(channel_id)
+                await channel.send(embed=discord.Embed(description=message.content))
 
     async def handle_player_count_message(self, message: PlayerCount):
         channel: discord.TextChannel = self.client.get_channel(
