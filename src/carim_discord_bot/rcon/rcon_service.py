@@ -15,6 +15,12 @@ class Command(managed_service.Message):
         self.command = command
 
 
+class SafeShutdown(managed_service.Message):
+    def __init__(self, server_name, delay):
+        super().__init__(server_name)
+        self.delay = delay
+
+
 class RconService(managed_service.ManagedService):
     def __init__(self, server_name):
         super().__init__()
@@ -83,6 +89,8 @@ class RconService(managed_service.ManagedService):
     async def handle_message(self, message: managed_service.Message):
         if isinstance(message, Command):
             await self.handle_command(message)
+        elif isinstance(message, SafeShutdown):
+            log.info(f'{self.server_name} safe_shutdown called')
 
     async def handle_command(self, command_message: Command):
         command = command_message.command
