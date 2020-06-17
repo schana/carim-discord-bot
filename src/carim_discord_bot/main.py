@@ -85,12 +85,13 @@ async def start_service_managers():
 
     for server_name in config.get_server_names():
         await steam_service.get_service_manager(server_name).start()
-        await rcon_service.get_service_manager(server_name).start()
+        if config.get_server(server_name).rcon_password is not None:
+            await rcon_service.get_service_manager(server_name).start()
+            for i in range(len(config.get_server(server_name).scheduled_commands)):
+                sm = scheduled_command.get_service_manager(server_name, i)
+                await sm.start()
         if config.get_server(server_name).player_count_channel_id is not None:
             await player_count.get_service_manager(server_name).start()
-        for i in range(len(config.get_server(server_name).scheduled_commands)):
-            sm = scheduled_command.get_service_manager(server_name, i)
-            await sm.start()
 
 
 async def debug_tasks():
