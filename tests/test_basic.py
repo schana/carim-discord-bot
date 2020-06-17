@@ -5,11 +5,13 @@ import pytest
 from carim_discord_bot import config
 
 
+@pytest.mark.skip
 def test_import_modules():
     from carim_discord_bot import main
     print(main.format_help(include_admin=True))
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_arg_parsing(monkeypatch):
     from carim_discord_bot import main

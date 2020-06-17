@@ -2,9 +2,10 @@ import asyncio
 
 import pytest
 
-from carim_discord_bot import main
+# from carim_discord_bot import main
 
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_kick_everybody(monkeypatch):
     response = '''\
