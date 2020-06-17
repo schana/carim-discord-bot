@@ -1,30 +1,25 @@
 {
-  "required": {
+  "global": {
     "token": "Discord token for your bot that you can find at https://discordapp.com/developers/applications",
-    "rcon_ip": "IP address of your DayZ server",
-    "rcon_port": "RCon port for your DayZ server (may be different from the game port)",
-    "rcon_password": "RCon password, found in the BattlEye profile directory in your server files",
-    "steam_port": "Steam query port"
-  },
-  "optional": {
-    "bot_presence": "Discord presence message for the bot to display",
-    "bot_presence_type": "Discord presence type from (playing, listening, watching) default: playing",
-    "rcon_admin_log_channel": "Discord Channel ID to publish admin events to. This will include sensitive info like player IPs",
-    "rcon_chat_channel": "Discord Channel ID where the linked DayZ to Discord chat will take place",
-    "rcon_chat_ignore_regex": "Pattern that, if matched, will not publish the message to the chat channel",
-    "rcon_admin_channels": "List of Discord Channel IDs that can send admin RCon commands",
-    "rcon_count_channel": "Discord Channel ID that will have its name updated to the current player count",
-    "player_count_format": "Format for setting the channel name using {players} and {slots} as placeholders for the values",
-    "update_player_count_interval": "Time, in seconds, between player count update queries",
-    "rcon_keep_alive_interval": "Time, in seconds, between RCon keep alive messages. The connection times out at around 45 seconds",
+    "presence": "Discord presence message for the bot to display",
+    "presence_type": "Discord presence type from (playing, listening, watching) default: playing",
+    "log_player_count_updates": "Send player count update notices to admin log channel",
     "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"
   },
-  "log_events_in_discord": {
-    "connect_disconnect_notices": "Send connect and disconnect notices to chat channel",
-    "player_count_updates": "Send player count update notices to admin log channel",
-    "rcon_messages": "Send all RCon messages to admin log channel",
-    "rcon_keep_alive": "Send RCon keep alive status messages to admin log channel",
-    "include_timestamp": "Include timestamp on all messages from the bot"
+  "servers": {
+    "ip": "IP address of your DayZ server",
+    "rcon_port": "RCon port for your DayZ server (may be different from the game port)",
+    "rcon_password": "RCon password, found in the BattlEye profile directory in your server files",
+    "steam_port": "Steam query port",
+    "admin_channel_id": "Discord Channel ID that can send admin RCon commands and where logs are sent",
+    "chat_channel_id": "Discord Channel ID where the linked DayZ to Discord chat will take place",
+    "chat_ignore_regex": "Pattern that, if matched, will not publish the message to the chat channel",
+    "chat_show_connect_disconnect_notices": "Send connect and disconnect notices to chat channel",
+    "player_count_channel_id": "Discord Channel ID that will have its name updated to the current player count",
+    "player_count_format": "Format for setting the channel name using {players} and {slots} as placeholders for the values",
+    "player_count_update_interval": "Time, in seconds, between player count update queries",
+    "log_rcon_messages": "Send all RCon messages to admin log channel",
+    "log_rcon_keep_alive": "Send RCon keep alive status messages to admin log channel"
   },
   "scheduled_commands": {
     "command": "RCon command to run with parameters. Also accepts 'safe_shutdown'. See the template for examples",
@@ -38,8 +33,5 @@
     "channels": "List of channel ids to enable the command for. If not present or empty, command will work in every channel",
     "command": "Regex pattern that, if matched, will trigger the command",
     "response": "Discord embed object as described by https://discord.com/developers/docs/resources/channel#embed-object"
-  },
-  "deprecated": {
-    "rcon_publish_channel": "renamed to rcon_admin_log_channel to better reflect its purpose"
   }
 }

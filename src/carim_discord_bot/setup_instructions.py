@@ -4,14 +4,17 @@ import os
 from pkg_resources import resource_filename
 
 
-def print_setup_instructions():
+def print_setup_instructions(setup_part=None):
     header = 'Setup instructions for the Carim Discord Bot'
     print_header(header)
     print('For additional help, visit the Carim Discord at https://discord.gg/kdPnVu4')
     print()
-    print_setup_instructions_bot()
-    print_setup_instructions_config()
-    print_setup_instructions_service()
+    if setup_part not in ('configuration', 'service'):
+        print_setup_instructions_bot()
+    if setup_part not in ('bot', 'service'):
+        print_setup_instructions_config()
+    if setup_part not in ('configuration', 'bot'):
+        print_setup_instructions_service()
 
 
 def print_setup_instructions_bot():
@@ -53,7 +56,7 @@ def print_setup_instructions_config():
     print('Edit the copy with your values following the descriptions below:')
     with open(config_descriptions_path) as f:
         descriptions = json.load(f)
-    for entry_type in ('required', 'optional', 'log_events_in_discord', 'scheduled_commands'):
+    for entry_type in ('global', 'servers', 'scheduled_commands', 'custom_commands'):
         print(entry_type.upper())
         if entry_type == 'optional':
             print("  Note: if you don't want any of these features, remove the entry from the config.json")

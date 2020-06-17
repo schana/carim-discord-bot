@@ -1,42 +1,9 @@
 {
   "token": "",
-  "rcon_ip": "127.0.0.1",
-  "rcon_port": 2302,
-  "steam_port": 27016,
-  "rcon_password": "",
-  "bot_presence": "--help | --about",
-  "bot_presence_type": "playing",
-  "rcon_admin_log_channel": 0,
-  "rcon_chat_channel": 0,
-  "rcon_chat_ignore_regex": ".*: !.*",
-  "rcon_admin_channels": [
-    0
-  ],
-  "rcon_count_channel": 0,
-  "player_count_format": "{players}/{slots} players online",
-  "update_player_count_interval": 30,
-  "rcon_keep_alive_interval": 30,
-  "log_events_in_discord": {
-    "connect_disconnect_notices": true,
-    "player_count_updates": true,
-    "rcon_messages": true,
-    "rcon_keep_alive": false,
-    "include_timestamp": false
-  },
+  "presence_type": "watching",
+  "presence": "open source grow",
+  "log_player_count_updates": true,
   "debug": false,
-  "scheduled_commands": [
-    {
-      "command": "safe_shutdown",
-      "delay": 3600,
-      "interval": 21600,
-      "with_clock": true
-    },
-    {
-      "command": "say -1 Visit on Discord: https://discord.gg/kdPnVu4",
-      "interval": 400,
-      "offset": 0
-    }
-  ],
   "custom_commands": [
     {
       "enabled": true,
@@ -55,6 +22,38 @@
           "icon_url": "https://github.com/schana.png"
         }
       }
+    }
+  ],
+  "servers": [
+    {
+      "name": "My DayZ Server",
+      "ip": "127.0.0.1",
+      "rcon_port": 2302,
+      "rcon_password": "",
+      "steam_port": 27016,
+      "admin_channel_id": 0,
+      "chat_channel_id": 0,
+      "chat_ignore_regex": ".*: !.*",
+      "chat_show_connect_disconnect_notices": true,
+      "player_count_channel_id": 0,
+      "player_count_format": "{players}/{slots} players online",
+      "player_count_update_interval": 30,
+      "log_rcon_messages": true,
+      "log_rcon_keep_alive": false,
+      "scheduled_commands": [
+        {
+          "command": "safe_shutdown",
+          "delay": 3600,
+          "interval": 21600,
+          "with_clock": true,
+          "offset": 3600
+        },
+        {
+          "command": "say -1 Visit on Discord: https://discord.gg/kdPnVu4",
+          "interval": 400,
+          "offset": 0
+        }
+      ]
     }
   ]
 }
