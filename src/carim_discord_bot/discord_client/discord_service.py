@@ -31,6 +31,34 @@ class Log(managed_service.Message):
         self.text = text
 
 
+class Response(managed_service.Message):
+    def __init__(self, server_name, text):
+        super().__init__(server_name)
+        self.text = text
+
+
+def get_server_color(server_name):
+    color_options = [
+        0x9c27b0,
+        0x3f51b5,
+        0x2196f3,
+        0x03a9f4,
+        0x00bcd4,
+        0x009688,
+        0x4caf50,
+        0x8bc34a,
+        0xcddc39,
+        0xffeb3b,
+        0xffc107,
+        0xff9800,
+        0x795548,
+        0x607d8b
+    ]
+    return color_options[
+        int.from_bytes(hashlib.sha256(bytes(server_name, encoding='utf-8')).digest()[-4:], 'big') % len(
+            color_options)]
+
+
 class DiscordService(managed_service.ManagedService):
     def __init__(self):
         super().__init__()
@@ -75,6 +103,12 @@ class DiscordService(managed_service.ManagedService):
         elif isinstance(message, Log):
             log.info(f'log {message.server_name}: {message.text}')
             self.log_rollup[message.server_name].append(f'{message.text}')
+        elif isinstance(message, Response):
+            channel: discord.TextChannel = self.client.get_channel(
+                config.get_server(message.server_name).admin_channel_id)
+            response = f'**{message.server_name}**\n{message.text}'
+            await channel.send(embed=discord.Embed(description=response,
+                                                   color=get_server_color(message.server_name)))
         elif isinstance(message, Chat):
             log.info(f'chat {message.server_name}: {message.content}')
             channel_id = config.get_server(message.server_name).chat_channel_id
@@ -100,33 +134,15 @@ class DiscordService(managed_service.ManagedService):
                     self.log_rollup[message.server_name].append(f'Update player count: {player_count_string}')
 
     async def flush_log(self):
-        color_options = [
-            0x9c27b0,
-            0x3f51b5,
-            0x2196f3,
-            0x03a9f4,
-            0x00bcd4,
-            0x009688,
-            0x4caf50,
-            0x8bc34a,
-            0xcddc39,
-            0xffeb3b,
-            0xffc107,
-            0xff9800,
-            0x795548,
-            0x607d8b
-        ]
         await self.client.wait_until_ready()
         for server_name in config.get_server_names():
-            server_color = color_options[
-                int.from_bytes(hashlib.sha256(bytes(server_name, encoding='utf-8')).digest()[-4:], 'big') % len(color_options)]
             if self.log_rollup[server_name] and datetime.timedelta(seconds=10) < \
                     datetime.datetime.now() - self.last_log_time[server_name]:
                 channel: discord.TextChannel = self.client.get_channel(
                     config.get_server(server_name).admin_channel_id)
                 rolled_up_log = '\n'.join([f'**{server_name}**'] + self.log_rollup[server_name])
                 await channel.send(embed=discord.Embed(description=f'{rolled_up_log}',
-                                                       color=server_color))
+                                                       color=get_server_color(server_name)))
                 self.last_log_time[server_name] = datetime.datetime.now()
                 self.log_rollup[server_name] = list()
 

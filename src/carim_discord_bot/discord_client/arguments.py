@@ -6,6 +6,7 @@ import sys
 
 import carim_discord_bot
 from carim_discord_bot import message_builder, config
+from carim_discord_bot.discord_client import discord_service
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import scheduled_command
 
@@ -67,14 +68,20 @@ async def process_chat(server_name, message):
 
 async def process_message_args(server_name, parsed_args, message):
     if parsed_args.help:
-        embed = message_builder.build_embed('Help', format_help())
-        await message.channel.send(embed=embed)
+        asyncio.create_task(discord_service.get_service_manager().send_message(
+            discord_service.Response(server_name, format_help())
+        ))
     if parsed_args.secret:
-        await message.channel.send(f'Thank you, cnofafva, for giving me life!')
+        asyncio.create_task(discord_service.get_service_manager().send_message(
+            discord_service.Response(server_name, 'Thank you, cnofafva, for giving me life!')
+        ))
     if parsed_args.about:
-        await message.channel.send(embed=message_builder.build_embed(
-            'This bot is open source and can be built for any DayZ server\n'
-            'For more information, visit https://github.com/schana/carim-discord-bot'))
+        asyncio.create_task(discord_service.get_service_manager().send_message(
+            discord_service.Response(server_name, (
+                'This bot is open source and can be built for any DayZ server\n'
+                'For more information, visit https://github.com/schana/carim-discord-bot'
+            ))
+        ))
     await process_admin_args(server_name, parsed_args, message)
 
 
@@ -88,10 +95,13 @@ async def process_admin_args(server_name, parsed_args, message):
         await rcon_service.get_service_manager(server_name).send_message(service_message)
         try:
             result = await service_message.result
-            await message.channel.send(
-                embed=message_builder.build_embed(command, f'{str(result) if result else "success"}'))
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**{command}**\n{str(result) if result else "success"}')
+            ))
         except asyncio.CancelledError:
-            await message.channel.send(embed=message_builder.build_embed(command, f'query timed out'))
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**{command}**\nquery timed out')
+            ))
     if 'shutdown' in parsed_args:
         if parsed_args.shutdown is not None:
             delay = parsed_args.shutdown
@@ -116,13 +126,15 @@ async def process_admin_args(server_name, parsed_args, message):
             if sc.command.get('skip', False):
                 c_info['skip_next'] = True
             commands_info.append(c_info)
-        await message.channel.send(embed=message_builder.build_embed(
-            'Scheduled Commands',
-            f'```{json.dumps(commands_info, indent=1)}```'))
+        asyncio.create_task(discord_service.get_service_manager().send_message(
+            discord_service.Response(server_name, f'```{json.dumps(commands_info, indent=1)}```')
+        ))
     if 'skip' in parsed_args:
         i = parsed_args.skip
-        if not 0 <= i < len(scheduled_command.services[server_name]):
-            await message.channel.send(embed=message_builder.build_embed('Invalid index'))
+        if not 0 <= i < len(scheduled_command.services.get(server_name, list())):
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, 'Invalid index')
+            ))
         else:
             await scheduled_command.get_service_manager(server_name, i).send_message(
                 scheduled_command.Skip(server_name)
@@ -130,4 +142,6 @@ async def process_admin_args(server_name, parsed_args, message):
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:
-        await message.channel.send(embed=message_builder.build_embed(carim_discord_bot.VERSION))
+        asyncio.create_task(discord_service.get_service_manager().send_message(
+            discord_service.Response(server_name, f'{carim_discord_bot.VERSION}')
+        ))
