@@ -47,13 +47,13 @@ commands:
 admin commands:
 --command [command]        send command to the server, or list
                            the available commands
---safe_shutdown [seconds]  shutdown the server in a safe manner
+--shutdown [seconds]       shutdown the server in a safe manner
                            with an optional delay; notice messages
                            are broadcasted to the server at
                            60, 30, 20, 10, 5, 4, 3, 2, and 1 minute
                            until shutdown
---schedule_status          show current scheduled item status
---schedule_skip index      skip next run of scheduled command
+--status                   show current scheduled item status
+--skip index               skip next run of scheduled command
 --kill                     make the bot terminate
 ```
 
@@ -67,7 +67,7 @@ admin commands:
 --command players
 # gets a list of currently connected players
 
---safe_shutdown 3600
+--shutdown 3600
 # schedules the server to be shutdown in an hour
 ```
 
