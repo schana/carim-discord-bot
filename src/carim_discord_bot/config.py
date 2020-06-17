@@ -4,121 +4,86 @@ import logging
 from carim_discord_bot import message_builder
 
 log = logging.getLogger(__name__)
+_global_config = None
+_server_configs = dict()
 
 
-class Config:
-    def __init__(self, token, ip, port, password, steam_port, presence, presence_type, publish_channel_id,
-                 admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id, player_count_format, update_player_count_interval,
-                 rcon_keep_alive_interval, log_connect_disconnect_notices, log_player_count_updates, log_rcon_messages,
-                 log_rcon_keep_alive, include_timestamp, debug, scheduled_commands, custom_commands):
-        self.token = token
-        self.ip = ip
-        self.port = port
-        self.password = password
-        self.steam_port = steam_port
-        self.presence = presence
-        self.presence_type = presence_type
-        self.publish_channel_id = publish_channel_id
-        self.admin_channels = admin_channels
-        self.chat_channel_id = chat_channel_id
-        self.chat_ignore_regex = chat_ignore_regex
-        self.count_channel_id = count_channel_id
-        self.player_count_format = player_count_format
-        self.update_player_count_interval = update_player_count_interval
-        self.rcon_keep_alive_interval = rcon_keep_alive_interval
-        self.log_connect_disconnect_notices = log_connect_disconnect_notices
-        self.log_player_count_updates = log_player_count_updates
-        self.log_rcon_messages = log_rcon_messages
-        self.log_rcon_keep_alive = log_rcon_keep_alive
-        self.include_timestamp = include_timestamp
-        self.debug = debug
-        self.scheduled_commands = scheduled_commands
-        self.custom_commands = custom_commands
+class GlobalConfig:
+    def __init__(self):
+        self.token = None
+        self.presence = None
+        self.presence_type = None
+        self.debug = False
+        self.log_player_count_updates = True
+        self.custom_commands = list()
 
-    @staticmethod
-    def build_from_dict(config):
-        token = config['token']
-        ip = config['rcon_ip']
-        port = config['rcon_port']
-        password = config['rcon_password']
-        steam_port = config['steam_port']
 
-        presence = config.get('bot_presence')
-        presence_type = config.get('bot_presence_type', 'playing')
-        if presence_type not in ('playing', 'listening', 'watching'):
-            log.error(f'config.json unknown presence type ({presence_type}), using default instead')
-            presence_type = 'playing'
+class ServerConfig:
+    def __init__(self):
+        self.name = None
+        self.ip = None
+        self.rcon_port = None
+        self.rcon_password = None
+        self.steam_port = None
+        self.admin_channel_id = None
 
-        publish_channel_id = config.get('rcon_admin_log_channel')
-        if publish_channel_id is None:
-            publish_channel_id = config.get('rcon_publish_channel')
-            if publish_channel_id is not None:
-                log.warning('config.json rcon_publish_channel is deprecated, use rcon_admin_log_channel instead')
-        publish_channel_id = Config.check_channel_default(channel=publish_channel_id)
+        self.chat_channel_id = None
+        self.chat_ignore_regex = r'^$'
+        self.chat_show_connect_disconnect_notices = True
 
-        admin_channels = config.get('rcon_admin_channels', list())
-        if isinstance(admin_channels, int):
-            log.warning('config.json rcon_admin_channels should be a list, but only an int was found')
-            admin_channels = [admin_channels]
-        admin_channels = Config.check_channel_default(channels=admin_channels)
+        self.player_count_channel_id = None
+        self.player_count_format = '{players}/{slots} players online'
+        self.player_count_update_interval = 30
 
-        chat_channel_id = Config.check_channel_default(channel=config.get('rcon_chat_channel'))
-        chat_ignore_regex = config.get('rcon_chat_ignore_regex', r'^$')
-        count_channel_id = Config.check_channel_default(channel=config.get('rcon_count_channel'))
-        player_count_format = config.get('player_count_format', '{players}/{slots} players online')
-        update_player_count_interval = config.get('update_player_count_interval', 300)
-        rcon_keep_alive_interval = config.get('rcon_keep_alive_interval', 30)
+        self.log_rcon_messages = True
+        self.log_rcon_keep_alive = False
 
-        discord_logging_verbosity = config.get('log_events_in_discord', dict())
+        self.scheduled_commands = list()
 
-        log_connect_disconnect_notices = discord_logging_verbosity.get('connect_disconnect_notices', True)
-        log_player_count_updates = discord_logging_verbosity.get('player_count_updates', True)
-        log_rcon_messages = discord_logging_verbosity.get('rcon_messages', True)
-        log_rcon_keep_alive = discord_logging_verbosity.get('rcon_keep_alive', True)
-        include_timestamp = discord_logging_verbosity.get('include_timestamp', True)
 
-        debug = config.get('debug', False)
+def _build_from_dict(raw, config_type):
+    config = config_type()
+    for key in config.__dict__:
+        if key in raw:
+            config.__setattr__(key, raw[key])
+    return config
 
-        scheduled_commands = config.get('scheduled_commands', list())
+
+def initialize(file_path):
+    global _global_config
+    with open(file_path) as f:
+        config = json.load(f)
+
+    _global_config = _build_from_dict(config, GlobalConfig)
+
+    for server_config in config.get('servers', list()):
+        _server_configs[server_config['name']] = _build_from_dict(server_config, ServerConfig)
+
+    _validate_config()
+
+
+def _validate_config():
+    if get().presence_type not in ('playing', 'listening', 'watching'):
+        raise ValueError(f'unknown presence type: {get().presence_type}')
+
+    for server_name in _server_configs:
+        scheduled_commands = get_server(server_name).scheduled_commands
         if not isinstance(scheduled_commands, list):
-            message = 'config.json scheduled_commands needs to be a list if present'
-            log.error(message)
-            raise ValueError(message)
+            raise ValueError(f'scheduled_commands not a list in config for: {server_name}')
 
-        config_custom_commands = config.get('custom_commands', list())
-        custom_commands = list()
-        for raw_command in config_custom_commands:
-            custom_commands.append(message_builder.Response(raw_command))
-
-        return Config(token, ip, port, password, steam_port, presence, presence_type, publish_channel_id,
-                      admin_channels, chat_channel_id, chat_ignore_regex, count_channel_id, player_count_format,
-                      update_player_count_interval, rcon_keep_alive_interval, log_connect_disconnect_notices,
-                      log_player_count_updates, log_rcon_messages, log_rcon_keep_alive, include_timestamp, debug,
-                      scheduled_commands, custom_commands)
-
-    @staticmethod
-    def check_channel_default(channel=None, channels: list = None):
-        if channel is not None:
-            return None if channel == 0 else channel
-        if channels is not None:
-            if 0 in channels:
-                channels.remove(0)
-            return channels
-
-    @staticmethod
-    def build_from(file_path):
-        with open(file_path) as f:
-            config = json.load(f)
-        return Config.build_from_dict(config)
+    parsed_custom_commands = list()
+    for raw_command in get().custom_commands:
+        parsed_custom_commands.append(message_builder.Response(raw_command))
+    get().custom_commands = parsed_custom_commands
 
 
-_config: Config = None
+def get() -> GlobalConfig:
+    return _global_config
 
 
-def get() -> Config:
-    return _config
+def get_server(name) -> ServerConfig:
+    return _server_configs[name]
 
 
-def set(config):
-    global _config
-    _config = config
+def get_server_names():
+    return _server_configs.keys()
