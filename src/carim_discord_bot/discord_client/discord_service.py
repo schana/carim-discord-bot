@@ -39,6 +39,7 @@ class DiscordService(managed_service.ManagedService):
         start_date = datetime.datetime.now().replace(year=1984)
         self.last_log_time = {name: start_date for name in config.get_server_names()}
         self.last_player_count_update = {name: start_date for name in config.get_server_names()}
+        self.player_counts = {name: '' for name in config.get_server_names()}
 
     async def stop(self):
         await self.client.close()
@@ -82,16 +83,21 @@ class DiscordService(managed_service.ManagedService):
                 await channel.send(embed=discord.Embed(description=message.content))
 
     async def handle_player_count_message(self, message: PlayerCount):
-        channel: discord.TextChannel = self.client.get_channel(
-            config.get_server(message.server_name).player_count_channel_id)
-        player_count_string = config.get_server(message.server_name).player_count_format.format(
-            players=message.count, slots=message.slots)
-        if datetime.timedelta(minutes=5) < \
-                datetime.datetime.now() - self.last_player_count_update[message.server_name]:
-            # Rate limit is triggered when updating a channel name too often, so we need to
-            # put a hard limit on how often the player count channel gets updated
-            await channel.edit(name=player_count_string)
-            self.last_player_count_update[message.server_name] = datetime.datetime.now()
+        if config.get_server(message.server_name).player_count_channel_id:
+            player_count_string = config.get_server(message.server_name).player_count_format.format(
+                players=message.count, slots=message.slots)
+            if self.player_counts[message.server_name] != player_count_string:
+                if datetime.timedelta(minutes=5) < \
+                        datetime.datetime.now() - self.last_player_count_update[message.server_name]:
+                    # Rate limit is triggered when updating a channel name too often, so that's why we
+                    # put a hard limit on how often the player count channel gets updated
+                    channel: discord.TextChannel = self.client.get_channel(
+                        config.get_server(message.server_name).player_count_channel_id)
+                    await channel.edit(name=player_count_string)
+                    self.last_player_count_update[message.server_name] = datetime.datetime.now()
+                    self.player_counts[message.server_name] = player_count_string
+                    log.info(f'log {message.server_name}: Update player count: {player_count_string}')
+                    self.log_rollup[message.server_name].append(f'Update player count: {player_count_string}')
 
     async def flush_log(self):
         color_options = [
