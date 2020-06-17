@@ -26,10 +26,10 @@ command_group.add_argument('--version', action='store_true', help='display the c
 admin_group = message_parser.add_argument_group('admin commands')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
                          help='send command to the server, or list the available commands')
-admin_group.add_argument('--safe_shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
+admin_group.add_argument('--shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
                          help='shutdown the server in a safe manner with an optional delay')
-admin_group.add_argument('--schedule_status', action='store_true', help='show current scheduled item status')
-admin_group.add_argument('--schedule_skip', type=int, default=argparse.SUPPRESS, metavar='index',
+admin_group.add_argument('--status', action='store_true', help='show current scheduled item status')
+admin_group.add_argument('--skip', type=int, default=argparse.SUPPRESS, metavar='index',
                          help='skip next run of scheduled command')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
 
@@ -92,17 +92,14 @@ async def process_admin_args(server_name, parsed_args, message):
                 embed=message_builder.build_embed(command, f'{str(result) if result else "success"}'))
         except asyncio.CancelledError:
             await message.channel.send(embed=message_builder.build_embed(command, f'query timed out'))
-    if 'safe_shutdown' in parsed_args:
-        if restart_lock.locked():
-            await message.channel.send(embed=message_builder.build_embed('Shutdown already scheduled'))
+    if 'shutdown' in parsed_args:
+        if parsed_args.shutdown is not None:
+            delay = parsed_args.shutdown
         else:
-            if parsed_args.safe_shutdown is not None:
-                await message.channel.send(embed=message_builder.build_embed('Shutdown scheduled'))
-                await process_safe_shutdown(parsed_args.safe_shutdown)
-            else:
-                await message.channel.send(embed=message_builder.build_embed('Shutting down now'))
-                await process_safe_shutdown()
-    if parsed_args.schedule_status:
+            delay = 0
+        service_message = rcon_service.SafeShutdown(server_name, delay)
+        await rcon_service.get_service_manager(server_name).send_message(service_message)
+    if parsed_args.status:
         commands_info = list()
         commands_config = config.get_server(server_name).scheduled_commands
         for i, command_config in enumerate(commands_config):
@@ -122,12 +119,14 @@ async def process_admin_args(server_name, parsed_args, message):
         await message.channel.send(embed=message_builder.build_embed(
             'Scheduled Commands',
             f'```{json.dumps(commands_info, indent=1)}```'))
-    if 'schedule_skip' in parsed_args:
-        i = parsed_args.schedule_skip
-        if not 0 <= i < len(scheduled_commands):
+    if 'skip' in parsed_args:
+        i = parsed_args.skip
+        if not 0 <= i < len(scheduled_command.services[server_name]):
             await message.channel.send(embed=message_builder.build_embed('Invalid index'))
         else:
-            scheduled_commands[i]['skip'] = True
+            await scheduled_command.get_service_manager(server_name, i).send_message(
+                scheduled_command.Skip(server_name)
+            )
     if parsed_args.kill:
         sys.exit(0)
     if parsed_args.version:

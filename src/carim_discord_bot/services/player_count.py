@@ -3,8 +3,8 @@ import logging
 
 from carim_discord_bot import managed_service, config
 from carim_discord_bot.discord_client import discord_service
-from carim_discord_bot.steam import steam_service
 from carim_discord_bot.steam import query
+from carim_discord_bot.steam import steam_service
 
 log = logging.getLogger(__name__)
 

@@ -9,6 +9,10 @@ from carim_discord_bot.rcon import rcon_service
 log = logging.getLogger(__name__)
 
 
+class Skip(managed_service.Message):
+    pass
+
+
 class ScheduledCommand(managed_service.ManagedService):
     def __init__(self, server_name, index):
         super().__init__()
@@ -18,14 +22,15 @@ class ScheduledCommand(managed_service.ManagedService):
         self.command['next'] = 'unknown'
 
     async def handle_message(self, message: managed_service.Message):
-        pass
+        if isinstance(message, Skip):
+            self.command['skip'] = True
 
     async def service(self):
         if not self.command.get('with_clock', False):
             await asyncio.sleep(self.command.get('offset', 0))
         while True:
             await self.schedule_command()
-            await asyncio.sleep(self.command['interval'])
+            await asyncio.sleep(5)
 
     async def schedule_command(self):
         interval = self.command['interval']

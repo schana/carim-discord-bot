@@ -47,6 +47,7 @@ class ManagedService:
         await self.start()
 
     async def send_message(self, message: Message):
+        log.debug(f'{self._get_server_name_if_present()}sending message to {type(self).__name__} of type {type(message).__name__}')
         await self.message_queue.put(message)
 
     async def _status_checker(self):
@@ -55,7 +56,8 @@ class ManagedService:
             for task in self.tasks:
                 task: asyncio.Task = task
                 if task.done():
-                    log.warning(f'{self._get_server_name_if_present()}something crashed {type(self).__name__}')
+                    log.error(f'{self._get_server_name_if_present()}something crashed {type(self).__name__}',
+                              exc_info=task.exception())
                     await self.send_message(Restart(None))
             await asyncio.sleep(1)
 

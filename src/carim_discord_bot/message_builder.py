@@ -1,9 +1,6 @@
-import datetime
 import logging
 
 import discord
-
-from carim_discord_bot import config
 
 log = logging.getLogger(__name__)
 
