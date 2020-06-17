@@ -47,7 +47,8 @@ class ManagedService:
         await self.start()
 
     async def send_message(self, message: Message):
-        log.debug(f'{self._get_server_name_if_present()}sending message to {type(self).__name__} of type {type(message).__name__}')
+        log.debug(
+            f'{self._get_server_name_if_present()}sending message to {type(self).__name__} of type {type(message).__name__}')
         await self.message_queue.put(message)
 
     async def _status_checker(self):

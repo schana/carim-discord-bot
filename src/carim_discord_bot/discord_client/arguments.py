@@ -5,7 +5,7 @@ import json
 import sys
 
 import carim_discord_bot
-from carim_discord_bot import message_builder, config
+from carim_discord_bot import config
 from carim_discord_bot.discord_client import discord_service
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import scheduled_command
