@@ -87,7 +87,7 @@ class RconService(managed_service.ManagedService):
         if isinstance(message, Command):
             await self.handle_command(message)
         elif isinstance(message, SafeShutdown):
-            await self.safe_shutdown(message.delay)
+            asyncio.create_task(self.safe_shutdown(message.delay))
 
     async def handle_command(self, command_message: Command):
         command = command_message.command
