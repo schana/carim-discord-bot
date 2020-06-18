@@ -32,8 +32,13 @@ class PlayerCountService(managed_service.ManagedService):
             return
 
         result: query.SteamData = result
-        count_players = result.players
-        message = discord_service.PlayerCount(self.server_name, count_players, result.max_players)
+        message = discord_service.PlayerCount(
+            self.server_name,
+            result.players,
+            result.max_players,
+            result.get_queue(),
+            result.get_time()
+        )
         await discord_service.get_service_manager().send_message(message)
 
 
