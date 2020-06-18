@@ -1,4 +1,5 @@
 import asyncio
+import re
 import struct
 
 QUERY_HEADER_FORMAT = '=IB'
@@ -90,6 +91,19 @@ class SteamData:
         self.extra_steam_id = None
         self.keywords = list()
         self.game_id = None
+
+    def get_queue(self):
+        for kw in self.keywords:
+            if kw.startswith('lqs'):
+                return kw[3:]
+        return None
+
+    def get_time(self):
+        time_pattern = re.compile(r'[0-9]{2}:[0-9]{2}')
+        for kw in self.keywords:
+            if time_pattern.match(kw):
+                return kw
+        return None
 
 
 async def query(ip, port, future):

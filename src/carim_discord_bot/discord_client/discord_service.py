@@ -13,10 +13,12 @@ log = logging.getLogger(__name__)
 
 
 class PlayerCount(managed_service.Message):
-    def __init__(self, server_name, count, slots):
+    def __init__(self, server_name, players, slots, queue, time):
         super().__init__(server_name)
-        self.count = count
+        self.players = players
         self.slots = slots
+        self.queue = queue
+        self.time = time
 
 
 class Chat(managed_service.Message):
@@ -119,7 +121,10 @@ class DiscordService(managed_service.ManagedService):
     async def handle_player_count_message(self, message: PlayerCount):
         if config.get_server(message.server_name).player_count_channel_id:
             player_count_string = config.get_server(message.server_name).player_count_format.format(
-                players=message.count, slots=message.slots)
+                players=message.players,
+                slots=message.slots,
+                queue=message.queue,
+                time=message.time)
             if self.player_counts[message.server_name] != player_count_string:
                 if datetime.timedelta(minutes=5) < \
                         datetime.datetime.now() - self.last_player_count_update[message.server_name]:

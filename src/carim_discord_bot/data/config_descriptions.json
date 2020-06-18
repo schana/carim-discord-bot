@@ -16,7 +16,7 @@
     "chat_ignore_regex": "Pattern that, if matched, will not publish the message to the chat channel",
     "chat_show_connect_disconnect_notices": "Send connect and disconnect notices to chat channel",
     "player_count_channel_id": "Discord Channel ID that will have its name updated to the current player count",
-    "player_count_format": "Format for setting the channel name using {players} and {slots} as placeholders for the values",
+    "player_count_format": "Format for setting the channel name using {players}, {slots}, {queue}, and {time} as placeholders for the values",
     "player_count_update_interval": "Time, in seconds, between player count update queries",
     "log_rcon_messages": "Send all RCon messages to admin log channel",
     "log_rcon_keep_alive": "Send RCon keep alive status messages to admin log channel"
