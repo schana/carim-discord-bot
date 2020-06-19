@@ -63,7 +63,7 @@ def initialize(file_path):
 
 
 def _validate_config():
-    if get().presence_type not in ('playing', 'listening', 'watching'):
+    if get().presence_type not in ('playing', 'listening', 'watching', None):
         raise ValueError(f'unknown presence type: {get().presence_type}')
 
     for server_name in _server_configs:

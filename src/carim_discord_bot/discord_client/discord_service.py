@@ -136,7 +136,8 @@ class DiscordService(managed_service.ManagedService):
                     self.last_player_count_update[message.server_name] = datetime.datetime.now()
                     self.player_counts[message.server_name] = player_count_string
                     log.info(f'log {message.server_name}: Update player count: {player_count_string}')
-                    self.log_rollup[message.server_name].append(f'Update player count: {player_count_string}')
+                    if config.get().log_player_count_updates:
+                        self.log_rollup[message.server_name].append(f'Update player count: {player_count_string}')
 
     async def flush_log(self):
         await self.client.wait_until_ready()
