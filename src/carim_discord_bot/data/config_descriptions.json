@@ -3,6 +3,8 @@
     "token": "Discord token for your bot that you can find at https://discordapp.com/developers/applications",
     "presence": "Discord presence message for the bot to display",
     "presence_type": "Discord presence type from (playing, listening, watching) default: playing",
+    "discord_member_count_channel_id": "Discord Channel ID to display a count of members in the discord",
+    "discord_member_count_format": "Format for the discord member count, using {count} as a placeholder",
     "log_player_count_updates": "Send player count update notices to admin log channel",
     "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"
   },
