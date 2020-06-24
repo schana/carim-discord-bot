@@ -129,7 +129,7 @@ class DiscordService(managed_service.ManagedService):
                 queue=message.queue,
                 time=message.time)
             if self.player_counts[message.server_name] != player_count_string:
-                if datetime.timedelta(minutes=5) < \
+                if datetime.timedelta(minutes=6) < \
                         datetime.datetime.now() - self.last_player_count_update[message.server_name]:
                     # Rate limit is triggered when updating a channel name too often, so that's why we
                     # put a hard limit on how often the player count channel gets updated
