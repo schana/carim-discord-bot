@@ -2,6 +2,8 @@
   "token": "",
   "presence_type": "watching",
   "presence": "open source grow",
+  "discord_member_count_channel_id": 0,
+  "discord_member_count_format": "{count} members",
   "log_player_count_updates": true,
   "debug": false,
   "custom_commands": [

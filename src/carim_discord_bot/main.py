@@ -9,7 +9,7 @@ from pkg_resources import resource_filename
 
 import carim_discord_bot
 from carim_discord_bot import setup_instructions, config
-from carim_discord_bot.discord_client import discord_service
+from carim_discord_bot.discord_client import discord_service, member_count
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import player_count, scheduled_command
 from carim_discord_bot.steam import steam_service
@@ -82,6 +82,7 @@ def loop_exception_handler(loop, context):
 
 async def start_service_managers():
     await discord_service.get_service_manager().start()
+    await member_count.get_service_manager().start()
 
     for server_name in config.get_server_names():
         await steam_service.get_service_manager(server_name).start()

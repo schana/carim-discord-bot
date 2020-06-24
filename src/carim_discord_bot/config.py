@@ -13,6 +13,8 @@ class GlobalConfig:
         self.token = None
         self.presence = None
         self.presence_type = None
+        self.discord_member_count_channel_id = None
+        self.discord_member_count_format = '{count} members'
         self.debug = False
         self.log_player_count_updates = True
         self.custom_commands = list()
