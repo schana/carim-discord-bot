@@ -66,7 +66,7 @@ class DiscordService(managed_service.ManagedService):
         super().__init__()
         self.client = None
         self.log_rollup = {name: list() for name in config.get_server_names()}
-        start_date = datetime.datetime.now().replace(minute=datetime.datetime.now().minute - 3)
+        start_date = datetime.datetime.now().replace(minute=max(0, datetime.datetime.now().minute - 3))
         self.last_log_time = {name: start_date for name in config.get_server_names()}
         self.last_player_count_update = {name: start_date for name in config.get_server_names()}
         self.player_counts = {name: '' for name in config.get_server_names()}
