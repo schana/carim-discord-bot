@@ -6,6 +6,7 @@ import sys
 
 import carim_discord_bot
 from carim_discord_bot import config
+from carim_discord_bot.cftools import omega_service
 from carim_discord_bot.discord_client import discord_service
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import scheduled_command
@@ -25,6 +26,7 @@ command_group.add_argument('--about', action='store_true', help='display some in
 command_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
 admin_group = message_parser.add_argument_group('admin commands')
+admin_group.add_argument('--leaderboard', action='store_true', help='show leaderboard')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
                          help='send command to the server, or list the available commands')
 admin_group.add_argument('--shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
@@ -86,6 +88,18 @@ async def process_message_args(server_name, parsed_args, message):
 
 
 async def process_admin_args(server_name, parsed_args, message):
+    if parsed_args.leaderboard:
+        omega_message = omega_service.Query(server_name)
+        await omega_service.get_service_manager().send_message(omega_message)
+        try:
+            result = await omega_message.result
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Leaderboard**\n{result}')
+            ))
+        except asyncio.CancelledError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Leaderboard**\nquery timed out')
+            ))
     if 'command' in parsed_args:
         if parsed_args.command is None:
             command = 'commands'
