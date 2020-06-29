@@ -11,8 +11,18 @@ API = 'https://cfapi.de'
 log = logging.getLogger(__name__)
 
 
-class Query(managed_service.Message):
-    pass
+class ServiceToken:
+    def __init__(self, raw):
+        self.service_id = raw.get('service_id')
+        self.token = raw.get('token')
+        self.token_id = raw.get('token_id')
+        self.token_type = raw.get('token_type')
+
+
+class Leaderboard(managed_service.Message):
+    def __init__(self, server_name, stat):
+        super().__init__(server_name)
+        self.stat = stat
 
 
 class OmegaService(managed_service.ManagedService):
@@ -26,11 +36,12 @@ class OmegaService(managed_service.ManagedService):
         self.logged_in_time = None
         self.access_token = None
         self.refresh_token = None
+        self.service_tokens = dict()
         self.request_lock = asyncio.Lock()
 
     async def handle_message(self, message: managed_service.Message):
-        if isinstance(message, Query):
-            result = await self.make_request(message.server_name)
+        if isinstance(message, Leaderboard):
+            result = await self.query_leaderboard(message.server_name, message.stat)
             message.result.set_result(result)
 
     async def service(self):
@@ -40,6 +51,8 @@ class OmegaService(managed_service.ManagedService):
                     await self.renew_login()
             else:
                 await self.login()
+                if self.logged_in:
+                    await self.get_service_tokens()
             await asyncio.sleep(10)
 
     async def login(self):
@@ -60,6 +73,15 @@ class OmegaService(managed_service.ManagedService):
             self.access_token = request.json().get('access_token')
             self.refresh_token = request.json().get('refresh_token')
 
+    async def get_service_tokens(self):
+        request = await self.locking_request('GET', f'{API}/v1/servicetokens')
+        tokens = request.json().get('tokens', list())
+        if len(tokens) < 1:
+            log.warning('Not authorized for any services')
+        for token in tokens:
+            new_service_token = ServiceToken(token)
+            self.service_tokens[new_service_token.service_id] = new_service_token
+
     async def renew_login(self):
         async with self.request_lock:
             headers = self.get_headers()
@@ -75,10 +97,10 @@ class OmegaService(managed_service.ManagedService):
             self.access_token = request.json().get('access_token')
             self.refresh_token = request.json().get('refresh_token')
 
-    async def make_request(self, server_name):
-        service_token = config.get_server(server_name).cftools_service_token
-        request = await self.locking_request('GET', f'{API}/v2/omega/{service_token}/leaderboard',
-                                             payload=dict(stat='kills'))
+    async def query_leaderboard(self, server_name, stat):
+        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        request = await self.locking_request('GET', f'{API}/v2/omega/{service_token.token}/leaderboard',
+                                             payload=dict(stat=stat))
         return request.json()
 
     async def locking_request(self, method, url, payload=None):

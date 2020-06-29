@@ -26,7 +26,8 @@ command_group.add_argument('--about', action='store_true', help='display some in
 command_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
 admin_group = message_parser.add_argument_group('admin commands')
-admin_group.add_argument('--leaderboard', action='store_true', help='show leaderboard')
+admin_group.add_argument('--leaderboard', type=str, default=argparse.SUPPRESS, metavar='stat',
+                         help='show leaderboard')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
                          help='send command to the server, or list the available commands')
 admin_group.add_argument('--shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
@@ -88,13 +89,42 @@ async def process_message_args(server_name, parsed_args, message):
 
 
 async def process_admin_args(server_name, parsed_args, message):
-    if parsed_args.leaderboard:
-        omega_message = omega_service.Query(server_name)
+    if 'leaderboard' in parsed_args:
+        stat_options = (
+            'deaths',
+            'kills',
+            'playtime',
+            'damage_dealt',
+            'damage_taken',
+            'hits',
+            'hitted',
+            'longest_kill_distance',
+            'kdratio'
+        )
+        if parsed_args.leaderboard not in stat_options:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'Invalid leaderboard stat. Valid options:\n{stat_options}')
+            ))
+            return
+        omega_message = omega_service.Leaderboard(server_name, parsed_args.leaderboard)
         await omega_service.get_service_manager().send_message(omega_message)
         try:
             result = await omega_message.result
+            result_data = []
+            stats = None
+            for r in result.get('users', list()):
+                if stats is None:
+                    stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
+                    result_data.append([stat for stat in ('rank',) + stats + ('name',)])
+                line_items = [r['rank']] + [f'{r[stat]:.2f}' if isinstance(r[stat], float) else r[stat] for stat in stats] + [r['latest_name']]
+                result_data.append(line_items)
+            s = [[str(e) for e in row] for row in result_data]
+            lens = [max(map(len, col)) for col in zip(*s)]
+            fmt = ' '.join('{{:{}}}'.format(x) for x in lens)
+            table = [fmt.format(*row) for row in s]
+            formatted_result = '```\n' + '\n'.join(table) + '\n```'
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.Response(server_name, f'**Leaderboard**\n{result}')
+                discord_service.Response(server_name, f'**Leaderboard**\n{formatted_result}')
             ))
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(

@@ -45,7 +45,7 @@ class ServerConfig:
         self.log_rcon_messages = True
         self.log_rcon_keep_alive = False
 
-        self.cftools_service_token = None
+        self.cftools_service_id = None
 
         self.scheduled_commands = list()
 
