@@ -147,13 +147,37 @@ class DiscordService(managed_service.ManagedService):
         for server_name in config.get_server_names():
             if self.log_rollup[server_name] and datetime.timedelta(seconds=10) < \
                     datetime.datetime.now() - self.last_log_time[server_name]:
-                channel: discord.TextChannel = self.client.get_channel(
-                    config.get_server(server_name).admin_channel_id)
-                rolled_up_log = '\n'.join([f'**{server_name}**'] + self.log_rollup[server_name])
-                await channel.send(embed=discord.Embed(description=f'{rolled_up_log}',
-                                                       color=get_server_color(server_name)))
+                fields = []
+                current_field = ''
+                for log_line in self.log_rollup[server_name]:
+                    if sum(len(f) for f in fields) > 4096:
+                        await self.send_rolled_log(server_name, fields)
+                        fields = []
+
+                    if len(current_field) + len(log_line) > 1000:
+                        fields.append({
+                            'name': f'**{server_name}**',
+                            'value': current_field
+                        })
+                        current_field = ''
+                    current_field += log_line + '\n'
+                fields.append({
+                    'name': f'**{server_name}**',
+                    'value': current_field
+                })
+                await self.send_rolled_log(server_name, fields)
+
                 self.last_log_time[server_name] = datetime.datetime.now()
                 self.log_rollup[server_name] = list()
+
+    async def send_rolled_log(self, server_name, fields):
+        channel: discord.TextChannel = self.client.get_channel(
+            config.get_server(server_name).admin_channel_id)
+        embed_dict = {
+            'color': get_server_color(server_name),
+            'fields': fields
+        }
+        await channel.send(embed=discord.Embed.from_dict(embed_dict))
 
 
 service = None
