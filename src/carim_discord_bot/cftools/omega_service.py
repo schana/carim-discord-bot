@@ -25,6 +25,29 @@ class Leaderboard(managed_service.Message):
         self.stat = stat
 
 
+class CacheItem:
+    def __init__(self, value):
+        self.value = value
+        self.time = datetime.datetime.now()
+
+    def is_valid(self):
+        return datetime.datetime.now() - self.time < datetime.timedelta(minutes=5)
+
+
+class LeaderboardCache:
+    def __init__(self):
+        self.state = dict()
+
+    def get(self, server_name, stat):
+        item: CacheItem = self.state.get((server_name, stat), None)
+        if item and item.is_valid():
+            return item.value
+        return None
+
+    def set(self, server_name, stat, value):
+        self.state[(server_name, stat)] = CacheItem(value)
+
+
 class OmegaService(managed_service.ManagedService):
     def __init__(self):
         super().__init__()
@@ -38,6 +61,7 @@ class OmegaService(managed_service.ManagedService):
         self.refresh_token = None
         self.service_tokens = dict()
         self.request_lock = asyncio.Lock()
+        self.leaderboard_cache = LeaderboardCache()
 
     async def handle_message(self, message: managed_service.Message):
         if isinstance(message, Leaderboard):
@@ -98,10 +122,17 @@ class OmegaService(managed_service.ManagedService):
             self.refresh_token = request.json().get('refresh_token')
 
     async def query_leaderboard(self, server_name, stat):
-        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
-        request = await self.locking_request('GET', f'{API}/v2/omega/{service_token.token}/leaderboard',
-                                             payload=dict(stat=stat))
-        return request.json()
+        cached = self.leaderboard_cache.get(server_name, stat)
+        if cached is not None:
+            log.debug('using cached value')
+            return cached
+        else:
+            service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+            request = await self.locking_request('GET', f'{API}/v2/omega/{service_token.token}/leaderboard',
+                                                 payload=dict(stat=stat, limit=20))
+            result = request.json()
+            self.leaderboard_cache.set(server_name, stat, result)
+            return result
 
     async def locking_request(self, method, url, payload=None):
         async with self.request_lock:
