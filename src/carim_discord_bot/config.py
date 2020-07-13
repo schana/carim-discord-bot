@@ -17,6 +17,11 @@ class GlobalConfig:
         self.discord_member_count_format = '{count} members'
         self.debug = False
         self.log_player_count_updates = True
+
+        self.cftools_application_id = None
+        self.cftools_client_id = None
+        self.cftools_secret = None
+
         self.custom_commands = list()
 
 
@@ -39,6 +44,8 @@ class ServerConfig:
 
         self.log_rcon_messages = True
         self.log_rcon_keep_alive = False
+
+        self.cftools_service_id = None
 
         self.scheduled_commands = list()
 
