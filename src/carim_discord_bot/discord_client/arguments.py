@@ -32,7 +32,7 @@ admin_group.add_argument('--list_priority', action='store_true', help='list queu
 admin_group.add_argument('--create_priority', nargs=3, type=str, default=argparse.SUPPRESS,
                          metavar=('cftools_id', 'comment', 'days'),
                          help='create a queue priority entry for {days} length, -1 is permanent')
-admin_group.add_argument('--revoke_priority', nargs=1, type=str, default=argparse.SUPPRESS, metavar='cftools_id',
+admin_group.add_argument('--revoke_priority', type=str, default=argparse.SUPPRESS, metavar='cftools_id',
                          help='revoke a queue priority entry')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
                          help='send command to the server, or list the available commands')
@@ -141,8 +141,9 @@ async def process_admin_args(server_name, parsed_args, message):
         await omega_service.get_service_manager().send_message(cf_message)
         try:
             result = await cf_message.result
+            result = json.dumps(result, indent=1)
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.Response(server_name, f'**Queue Priority**\n{result}')
+                discord_service.Response(server_name, f'**Queue Priority**\n```{result}```')
             ))
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(

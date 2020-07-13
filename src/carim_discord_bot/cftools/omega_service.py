@@ -192,7 +192,11 @@ class OmegaService(managed_service.ManagedService):
             if method == 'GET':
                 request = requests.request(method, url, headers=self.get_headers(), params=payload)
             elif method == 'POST':
-                request = requests.request(method, url, headers=self.get_headers(), data=payload)
+                request = requests.request(method, url, headers=self.get_headers(), json=payload)
+        log.debug(f'{method} {url}')
+        log.debug(f'request headers: {request.request.headers}')
+        log.debug(f'request body:    {request.request.body}')
+        log.debug(f'response:        {request.content}')
         return request
 
     def get_headers(self):
