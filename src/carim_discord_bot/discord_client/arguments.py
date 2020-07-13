@@ -28,6 +28,12 @@ command_group.add_argument('--version', action='store_true', help='display the c
 admin_group = message_parser.add_argument_group('admin commands')
 admin_group.add_argument('--leaderboard', type=str, default=argparse.SUPPRESS, metavar='stat',
                          help='show leaderboard')
+admin_group.add_argument('--list_priority', action='store_true', help='list queue priority entries')
+admin_group.add_argument('--create_priority', nargs=3, type=str, default=argparse.SUPPRESS,
+                         metavar=('cftools_id', 'comment', 'days'),
+                         help='create a queue priority entry for {days} length, -1 is permanent')
+admin_group.add_argument('--revoke_priority', nargs=1, type=str, default=argparse.SUPPRESS, metavar='cftools_id',
+                         help='revoke a queue priority entry')
 admin_group.add_argument('--command', nargs='?', type=str, default=argparse.SUPPRESS, metavar='command',
                          help='send command to the server, or list the available commands')
 admin_group.add_argument('--shutdown', nargs='?', type=int, default=argparse.SUPPRESS, metavar='seconds',
@@ -129,6 +135,56 @@ async def process_admin_args(server_name, parsed_args, message):
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(
                 discord_service.Response(server_name, f'**Leaderboard**\nquery timed out')
+            ))
+    if parsed_args.list_priority:
+        cf_message = omega_service.QueuePriorityList(server_name)
+        await omega_service.get_service_manager().send_message(cf_message)
+        try:
+            result = await cf_message.result
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Queue Priority**\n{result}')
+            ))
+        except asyncio.CancelledError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Queue Priority**\nquery timed out')
+            ))
+    if 'create_priority' in parsed_args:
+        cftools_id, comment, days = parsed_args.create_priority
+        try:
+            days = int(days)
+            if days != -1:
+                expires_at = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=days)
+                expires_at = expires_at.timestamp()
+            else:
+                expires_at = -1
+        except ValueError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'Invalid days: {days}')
+            ))
+            return
+        cf_message = omega_service.QueuePriorityCreate(server_name, cftools_id, comment, expires_at)
+        await omega_service.get_service_manager().send_message(cf_message)
+        try:
+            result = await cf_message.result
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Create Priority**\n{result}')
+            ))
+        except asyncio.CancelledError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Create Priority**\nquery timed out')
+            ))
+    if 'revoke_priority' in parsed_args:
+        cftools_id = parsed_args.revoke_priority
+        cf_message = omega_service.QueuePriorityRevoke(server_name, cftools_id)
+        await omega_service.get_service_manager().send_message(cf_message)
+        try:
+            result = await cf_message.result
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Revoke Priority**\n{result}')
+            ))
+        except asyncio.CancelledError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.Response(server_name, f'**Revoke Priority**\nquery timed out')
             ))
     if 'command' in parsed_args:
         if parsed_args.command is None:

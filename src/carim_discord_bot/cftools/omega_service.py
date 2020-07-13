@@ -25,6 +25,25 @@ class Leaderboard(managed_service.Message):
         self.stat = stat
 
 
+class QueuePriorityList(managed_service.Message):
+    def __init__(self, server_name):
+        super().__init__(server_name)
+
+
+class QueuePriorityCreate(managed_service.Message):
+    def __init__(self, server_name, cftools_id, comment, expires_at):
+        super().__init__(server_name)
+        self.cftools_id = cftools_id
+        self.comment = comment
+        self.expires_at = expires_at
+
+
+class QueuePriorityRevoke(managed_service.Message):
+    def __init__(self, server_name, cftools_id):
+        super().__init__(server_name)
+        self.cftools_id = cftools_id
+
+
 class CacheItem:
     def __init__(self, value):
         self.value = value
@@ -66,6 +85,18 @@ class OmegaService(managed_service.ManagedService):
     async def handle_message(self, message: managed_service.Message):
         if isinstance(message, Leaderboard):
             result = await self.query_leaderboard(message.server_name, message.stat)
+            message.result.set_result(result)
+        elif isinstance(message, QueuePriorityList):
+            result = await self.query_queue_priority(message.server_name)
+            message.result.set_result(result)
+        elif isinstance(message, QueuePriorityCreate):
+            result = await self.create_queue_priority(message.server_name,
+                                                      message.cftools_id,
+                                                      message.comment,
+                                                      message.expires_at)
+            message.result.set_result(result)
+        elif isinstance(message, QueuePriorityRevoke):
+            result = await self.revoke_queue_priority(message.server_name, message.cftools_id)
             message.result.set_result(result)
 
     async def service(self):
@@ -134,12 +165,34 @@ class OmegaService(managed_service.ManagedService):
             self.leaderboard_cache.set(server_name, stat, result)
             return result
 
+    async def query_queue_priority(self, server_name):
+        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        request = await self.locking_request('GET', f'{API}/v1/queuepriority/{service_token.token}/list')
+        return request.json()
+
+    async def create_queue_priority(self, server_name, cftools_id, comment, expires_at):
+        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        request = await self.locking_request('POST', f'{API}/v1/queuepriority/{service_token.token}/create',
+                                             payload=dict(cftools_id=cftools_id,
+                                                          comment=comment,
+                                                          expires_at=expires_at))
+        return request.json()
+
+    async def revoke_queue_priority(self, server_name, cftools_id):
+        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        request = await self.locking_request('POST', f'{API}/v1/queuepriority/{service_token.token}/revoke',
+                                             payload=dict(cftools_id=cftools_id))
+        return request.json()
+
     async def locking_request(self, method, url, payload=None):
         async with self.request_lock:
             if not self.logged_in:
                 log.warning(f'not logged in')
                 return
-            request = requests.request(method, url, headers=self.get_headers(), params=payload)
+            if method == 'GET':
+                request = requests.request(method, url, headers=self.get_headers(), params=payload)
+            elif method == 'POST':
+                request = requests.request(method, url, headers=self.get_headers(), data=payload)
         return request
 
     def get_headers(self):
