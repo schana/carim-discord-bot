@@ -2,7 +2,9 @@ import argparse
 import asyncio
 import datetime
 import json
+import logging
 import sys
+from typing import Sequence, Text
 
 import carim_discord_bot
 from carim_discord_bot import config
@@ -11,10 +13,25 @@ from carim_discord_bot.discord_client import discord_service
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import scheduled_command
 
+log = logging.getLogger(__name__)
+
 
 class BotArgumentParser(argparse.ArgumentParser):
     def error(self, message):
         raise ValueError()
+
+
+class OptionalIndexAction(argparse.Action):
+    def __init__(self, option_strings: Sequence[Text], dest: Text, **kwargs):
+        super().__init__(option_strings, dest, nargs='+', **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if len(values) > 2:
+            raise argparse.ArgumentError(self, 'too many arguments')
+        if len(values) == 1:
+            values += [0]
+        values[1] = int(values[1])
+        setattr(namespace, self.dest, values)
 
 
 message_parser = BotArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things',
@@ -26,8 +43,6 @@ command_group.add_argument('--about', action='store_true', help='display some in
 command_group.add_argument('--version', action='store_true', help='display the current version of the bot')
 
 admin_group = message_parser.add_argument_group('admin commands')
-admin_group.add_argument('--leaderboard', type=str, default=argparse.SUPPRESS, metavar='stat',
-                         help='show leaderboard')
 admin_group.add_argument('--list_priority', action='store_true', help='list queue priority entries')
 admin_group.add_argument('--create_priority', nargs=3, type=str, default=argparse.SUPPRESS,
                          metavar=('cftools_id', 'comment', 'days'),
@@ -43,11 +58,19 @@ admin_group.add_argument('--skip', type=int, default=argparse.SUPPRESS, metavar=
                          help='skip next run of scheduled command')
 admin_group.add_argument('--kill', action='store_true', help='make the bot terminate')
 
+user_message_parser = BotArgumentParser(prog='', add_help=False, description='A helpful bot that can do a few things',
+                                        formatter_class=argparse.RawTextHelpFormatter)
+user_group = user_message_parser.add_argument_group('user commands')
+user_group.add_argument('--leaderboard', action=OptionalIndexAction, metavar=('stat', 'index'),
+                        default=argparse.SUPPRESS, help='show leaderboard')
+user_group.add_argument('--stats', action=OptionalIndexAction, type=int, metavar=('steam64', 'index'),
+                        default=argparse.SUPPRESS, help='query stats')
 
-def format_help():
-    formatter = message_parser._get_formatter()
 
-    formatter.add_text(message_parser.description)
+def format_help(parser=message_parser):
+    formatter = parser._get_formatter()
+
+    formatter.add_text(parser.description)
 
     action_groups = [command_group, admin_group]
 
@@ -57,7 +80,7 @@ def format_help():
         formatter.add_arguments(action_group._group_actions)
         formatter.end_section()
 
-    formatter.add_text(message_parser.epilog)
+    formatter.add_text(parser.epilog)
 
     return formatter.format_help()
 
@@ -95,47 +118,6 @@ async def process_message_args(server_name, parsed_args, message):
 
 
 async def process_admin_args(server_name, parsed_args, message):
-    if 'leaderboard' in parsed_args:
-        stat_options = (
-            'deaths',
-            'kills',
-            'playtime',
-            'damage_dealt',
-            'damage_taken',
-            'hits',
-            'hitted',
-            'longest_kill_distance',
-            'kdratio'
-        )
-        if parsed_args.leaderboard not in stat_options:
-            asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.Response(server_name, f'Invalid leaderboard stat. Valid options:\n{stat_options}')
-            ))
-            return
-        omega_message = omega_service.Leaderboard(server_name, parsed_args.leaderboard)
-        await omega_service.get_service_manager().send_message(omega_message)
-        try:
-            result = await omega_message.result
-            result_data = []
-            stats = None
-            for r in result.get('users', list()):
-                if stats is None:
-                    stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
-                    result_data.append([stat for stat in ('rank',) + stats + ('name',)])
-                line_items = [r['rank']] + [f'{r[stat]:.2f}' if isinstance(r[stat], float) else r[stat] for stat in stats] + [r['latest_name']]
-                result_data.append(line_items)
-            s = [[str(e) for e in row] for row in result_data]
-            lens = [max(map(len, col)) for col in zip(*s)]
-            fmt = ' '.join('{{:{}}}'.format(x) for x in lens)
-            table = [fmt.format(*row) for row in s]
-            formatted_result = '```\n' + '\n'.join(table) + '\n```'
-            asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.Response(server_name, f'**Leaderboard**\n{formatted_result}')
-            ))
-        except asyncio.CancelledError:
-            asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.Response(server_name, f'**Leaderboard**\nquery timed out')
-            ))
     if parsed_args.list_priority:
         cf_message = omega_service.QueuePriorityList(server_name)
         await omega_service.get_service_manager().send_message(cf_message)
@@ -246,3 +228,80 @@ async def process_admin_args(server_name, parsed_args, message):
         asyncio.create_task(discord_service.get_service_manager().send_message(
             discord_service.Response(server_name, f'{carim_discord_bot.VERSION}')
         ))
+
+
+async def process_user_message_args(channel_id, parsed_args):
+    if 'leaderboard' in parsed_args:
+        stat = parsed_args.leaderboard[0]
+        server_index = parsed_args.leaderboard[1]
+        try:
+            server_name = config.get().server_names[server_index]
+        except IndexError:
+            index_names = json.dumps({k: v for k, v in enumerate(config.get().server_names)})
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'Invalid index. Valid options:\n{index_names}')
+            ))
+            return
+        stat_options = (
+            'deaths',
+            'kills',
+            'playtime',
+            'damage_dealt',
+            'damage_taken',
+            'hits',
+            'hitted',
+            'longest_kill_distance',
+            'kdratio'
+        )
+        if stat not in stat_options:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'Invalid leaderboard stat. Valid options:\n{stat_options}')
+            ))
+            return
+        omega_message = omega_service.Leaderboard(server_name, stat)
+        await omega_service.get_service_manager().send_message(omega_message)
+        try:
+            result = await omega_message.result
+            result_data = []
+            stats = None
+            for r in result.get('users', list()):
+                if stats is None:
+                    stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
+                    result_data.append([stat for stat in ('rank',) + stats + ('name',)])
+                line_items = [r['rank']] + [f'{r[stat]:.2f}' if isinstance(r[stat], float) else r[stat] for stat in
+                                            stats] + [r['latest_name']]
+                result_data.append(line_items)
+            s = [[str(e) for e in row] for row in result_data]
+            lens = [max(map(len, col)) for col in zip(*s)]
+            fmt = ' '.join('{{:{}}}'.format(x) for x in lens)
+            table = [fmt.format(*row) for row in s]
+            formatted_result = '```\n' + '\n'.join(table) + '\n```'
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'**Leaderboard**\n{formatted_result}')
+            ))
+        except asyncio.CancelledError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'**Leaderboard**\nquery timed out')
+            ))
+    if 'stats' in parsed_args:
+        steam64 = parsed_args.stats[0]
+        server_index = parsed_args.stats[1]
+        try:
+            server_name = config.get().server_names[server_index]
+        except IndexError:
+            index_names = json.dumps({k: v for k, v in enumerate(config.get().server_names)})
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'Invalid index. Valid options:\n{index_names}')
+            ))
+            return
+        omega_message = omega_service.Stats(server_name, steam64)
+        await omega_service.get_service_manager().send_message(omega_message)
+        try:
+            result = await omega_message.result
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'**Stats**\n{result}')
+            ))
+        except asyncio.CancelledError:
+            asyncio.create_task(discord_service.get_service_manager().send_message(
+                discord_service.UserResponse(channel_id, f'**Stats**\nquery timed out')
+            ))
