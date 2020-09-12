@@ -39,6 +39,13 @@ class Response(managed_service.Message):
         self.text = text
 
 
+class UserResponse(managed_service.Message):
+    def __init__(self, channel_id, text):
+        super().__init__(None)
+        self.channel_id = channel_id
+        self.text = text
+
+
 def get_server_color(server_name):
     color_options = [
         0x9c27b0,
@@ -120,6 +127,10 @@ class DiscordService(managed_service.ManagedService):
             if channel_id:
                 channel: discord.TextChannel = self.client.get_channel(channel_id)
                 await channel.send(embed=discord.Embed(description=message.content))
+        elif isinstance(message, UserResponse):
+            log.info(f'user message {message.channel_id}: {message.text}')
+            channel: discord.TextChannel = self.client.get_channel(message.channel_id)
+            await channel.send(embed=discord.Embed(description=message.text))
 
     async def handle_player_count_message(self, message: PlayerCount):
         if config.get_server(message.server_name).player_count_channel_id:

@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import hashlib
+import json
 import logging
 
 import requests
@@ -23,6 +24,12 @@ class Leaderboard(managed_service.Message):
     def __init__(self, server_name, stat):
         super().__init__(server_name)
         self.stat = stat
+
+
+class Stats(managed_service.Message):
+    def __init__(self, server_name, steam64):
+        super().__init__(server_name)
+        self.steam64 = steam64
 
 
 class QueuePriorityList(managed_service.Message):
@@ -85,6 +92,9 @@ class OmegaService(managed_service.ManagedService):
     async def handle_message(self, message: managed_service.Message):
         if isinstance(message, Leaderboard):
             result = await self.query_leaderboard(message.server_name, message.stat)
+            message.result.set_result(result)
+        elif isinstance(message, Stats):
+            result = await self.query_stats(message.server_name, message.steam64)
             message.result.set_result(result)
         elif isinstance(message, QueuePriorityList):
             result = await self.query_queue_priority(message.server_name)
@@ -164,6 +174,22 @@ class OmegaService(managed_service.ManagedService):
             result = request.json()
             self.leaderboard_cache.set(server_name, stat, result)
             return result
+
+    async def query_stats(self, server_name, steam64):
+        final_result = []
+        request = await self.locking_request('GET', f'{API}/v1/user/lookup',
+                                             payload=dict(identity=steam64, identity_type='steam64'))
+        result = request.json()
+        final_result.append(result)
+        if not result.get('status', False):
+            return
+        cftools_id = result.get('cftools_id')
+
+        request = await self.locking_request('GET', f'{API}/v1/user/{cftools_id}/info')
+        result = request.json()
+        final_result.append(result)
+
+        return json.dumps(final_result, indent=2)
 
     async def query_queue_priority(self, server_name):
         service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]

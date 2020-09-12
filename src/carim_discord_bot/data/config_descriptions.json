@@ -5,6 +5,7 @@
     "presence_type": "Discord presence type from (playing, listening, watching) default: playing",
     "discord_member_count_channel_id": "Discord Channel ID to display a count of members in the discord",
     "discord_member_count_format": "Format for the discord member count, using {count} as a placeholder",
+    "user_channel_ids": "Discord Channel ID or list of IDs that can use the user commands",
     "log_player_count_updates": "Send player count update notices to admin log channel",
     "cftools_application_id": "ApplicationID provided by cftools at https://network.cftools.de/cfapi/overview",
     "cftools_client_id": "Client-ID provided by cftools at https://network.cftools.de/cfapi/overview",

@@ -40,6 +40,20 @@ class CarimClient(discord.Client):
                     else:
                         await arguments.process_message_args(server_name, parsed_args, message)
 
+        if message.channel.id in config.get().user_channel_ids and message.content.startswith('--'):
+            args = shlex.split(message.content, comments=True)
+            try:
+                parsed_args, remaining_args = arguments.user_message_parser.parse_known_args(args)
+                if remaining_args == args:
+                    return
+            except (ValueError, argparse.ArgumentError):
+                log.info(f'invalid command {message.content}')
+                asyncio.create_task(discord_service.get_service_manager().send_message(
+                    discord_service.UserResponse(message.channel.id, f'invalid command\n`{message.content}`')
+                ))
+                return
+            await arguments.process_user_message_args(message.channel.id, parsed_args)
+
         for custom_command in config.get().custom_commands:
             custom_command: message_builder.Response = custom_command
             if custom_command.enabled:
