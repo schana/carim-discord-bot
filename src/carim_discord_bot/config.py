@@ -15,12 +15,15 @@ class GlobalConfig:
         self.presence_type = None
         self.discord_member_count_channel_id = None
         self.discord_member_count_format = '{count} members'
+        self.user_channel_ids = list()
         self.debug = False
         self.log_player_count_updates = True
 
         self.cftools_application_id = None
         self.cftools_client_id = None
         self.cftools_secret = None
+
+        self.server_names = list()
 
         self.custom_commands = list()
 
@@ -40,6 +43,7 @@ class ServerConfig:
 
         self.player_count_channel_id = None
         self.player_count_format = '{players}/{slots} players online'
+        self.player_count_queue_format = ''
         self.player_count_update_interval = 30
 
         self.log_rcon_messages = True
@@ -67,6 +71,7 @@ def initialize(file_path):
 
     for server_config in config.get('servers', list()):
         _server_configs[server_config['name']] = _build_from_dict(server_config, ServerConfig)
+        _global_config.server_names.append(server_config['name'])
 
     _validate_config()
 

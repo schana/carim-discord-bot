@@ -39,6 +39,13 @@ class Response(managed_service.Message):
         self.text = text
 
 
+class UserResponse(managed_service.Message):
+    def __init__(self, channel_id, text):
+        super().__init__(None)
+        self.channel_id = channel_id
+        self.text = text
+
+
 def get_server_color(server_name):
     color_options = [
         0x9c27b0,
@@ -109,17 +116,18 @@ class DiscordService(managed_service.ManagedService):
             log.info(f'log {message.server_name}: {message.text}')
             self.log_rollup[message.server_name].append(f'{message.text}')
         elif isinstance(message, Response):
-            channel: discord.TextChannel = self.client.get_channel(
-                config.get_server(message.server_name).admin_channel_id)
-            response = f'**{message.server_name}**\n{message.text}'
-            await channel.send(embed=discord.Embed(description=response,
-                                                   color=get_server_color(message.server_name)))
+            log.info(f'response {message.server_name}: {message.text}')
+            self.log_rollup[message.server_name].append(f'{message.text}')
         elif isinstance(message, Chat):
             log.info(f'chat {message.server_name}: {message.content}')
             channel_id = config.get_server(message.server_name).chat_channel_id
             if channel_id:
                 channel: discord.TextChannel = self.client.get_channel(channel_id)
                 await channel.send(embed=discord.Embed(description=message.content))
+        elif isinstance(message, UserResponse):
+            log.info(f'user message {message.channel_id}: {message.text}')
+            channel: discord.TextChannel = self.client.get_channel(message.channel_id)
+            await channel.send(embed=discord.Embed(description=message.text))
 
     async def handle_player_count_message(self, message: PlayerCount):
         if config.get_server(message.server_name).player_count_channel_id:
@@ -128,6 +136,13 @@ class DiscordService(managed_service.ManagedService):
                 slots=message.slots,
                 queue=message.queue,
                 time=message.time)
+            if message.queue != '0':
+                player_count_string += config.get_server(message.server_name).player_count_queue_format.format(
+                    players=message.players,
+                    slots=message.slots,
+                    queue=message.queue,
+                    time=message.time
+                )
             if self.player_counts[message.server_name] != player_count_string:
                 if datetime.timedelta(minutes=6) < \
                         datetime.datetime.now() - self.last_player_count_update[message.server_name]:
