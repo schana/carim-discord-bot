@@ -43,6 +43,7 @@ class ServerConfig:
 
         self.player_count_channel_id = None
         self.player_count_format = '{players}/{slots} players online'
+        self.player_count_queue_format = ''
         self.player_count_update_interval = 30
 
         self.log_rcon_messages = True
