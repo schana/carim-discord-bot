@@ -63,8 +63,10 @@ user_message_parser = BotArgumentParser(prog='', add_help=False, description='A 
 user_group = user_message_parser.add_argument_group('user commands')
 user_group.add_argument('--leaderboard', action=OptionalIndexAction, metavar=('stat', 'index'),
                         default=argparse.SUPPRESS, help='show leaderboard')
-user_group.add_argument('--stats', action=OptionalIndexAction, type=int, metavar=('steam64', 'index'),
-                        default=argparse.SUPPRESS, help='query stats')
+
+
+# user_group.add_argument('--stats', action=OptionalIndexAction, type=int, metavar=('steam64', 'index'),
+#                        default=argparse.SUPPRESS, help='query stats')
 
 
 def format_help(parser=message_parser):
