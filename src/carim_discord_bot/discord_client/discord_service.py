@@ -128,6 +128,13 @@ class DiscordService(managed_service.ManagedService):
                 slots=message.slots,
                 queue=message.queue,
                 time=message.time)
+            if message.queue != '0':
+                player_count_string += config.get_server(message.server_name).player_count_queue_format.format(
+                    players=message.players,
+                    slots=message.slots,
+                    queue=message.queue,
+                    time=message.time
+                )
             if self.player_counts[message.server_name] != player_count_string:
                 if datetime.timedelta(minutes=6) < \
                         datetime.datetime.now() - self.last_player_count_update[message.server_name]:
