@@ -41,9 +41,10 @@ class Response(managed_service.Message):
 
 
 class UserResponse(managed_service.Message):
-    def __init__(self, channel_id, text):
+    def __init__(self, channel_id, title, text):
         super().__init__(None)
         self.channel_id = channel_id
+        self.title = title
         self.text = text
 
 
@@ -159,7 +160,12 @@ class DiscordService(managed_service.ManagedService):
         elif isinstance(message, UserResponse):
             log.info(f'user message {message.channel_id}: {message.text}')
             channel: discord.TextChannel = self.client.get_channel(message.channel_id)
-            await channel.send(embed=discord.Embed(description=message.text))
+            for m in build_fields(message.title, message.text.split('\n')):
+                embed_dict = {
+                    'color': get_server_color(message.title),
+                    'fields': m
+                }
+                await channel.send(embed=discord.Embed.from_dict(embed_dict))
 
     async def handle_player_count_message(self, message: PlayerCount):
         if config.get_server(message.server_name).player_count_channel_id:

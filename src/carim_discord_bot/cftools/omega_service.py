@@ -182,20 +182,32 @@ class OmegaService(managed_service.ManagedService):
             return result
 
     async def query_stats(self, server_name, steam64):
-        final_result = []
         request = await self.locking_request('GET', f'{API}/v1/user/lookup',
                                              payload=dict(identity=steam64, identity_type='steam64'))
         result = request.json()
-        final_result.append(result)
         if not result.get('status', False):
-            return
+            return 'Invalid steam64'
         cftools_id = result.get('cftools_id')
 
-        request = await self.locking_request('GET', f'{API}/v1/user/{cftools_id}/info')
-        result = request.json()
-        final_result.append(result)
+        service_token = self.get_service_token(server_name)
+        request = await self.locking_request('GET', f'{API}/v1/user/{service_token.token}/service',
+                                             payload=dict(platform='omega', cftools_id=cftools_id))
 
-        return json.dumps(final_result, indent=2)
+        result = request.json()
+        user = result.get('user', dict()).get(config.get_server(server_name).cftools_service_id, dict())
+        stats = user.get('stats', dict())
+
+        response = dict(
+            playtime=str(datetime.timedelta(seconds=user.get('playtime', 0))),
+            sessions=user.get('sessions', 0),
+            average_engagement_distance=f'{stats.get("average_engagement_distance", 0):0.2f}m',
+            kills=stats.get('kills', 0),
+            deaths=stats.get('deaths', 0),
+            longest_kill_distance=f'{stats.get("longest_kill_distance", 0)}m',
+            longest_kill_weapon=stats.get('longest_kill_weapon', '')
+        )
+
+        return json.dumps(response, indent=1)
 
     async def query_queue_priority(self, server_name):
         service_token = self.get_service_token(server_name)
