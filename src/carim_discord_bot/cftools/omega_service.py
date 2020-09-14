@@ -147,6 +147,12 @@ class OmegaService(managed_service.ManagedService):
             new_service_token = ServiceToken(token)
             self.service_tokens[new_service_token.service_id] = new_service_token
 
+    def get_service_token(self, server_name):
+        try:
+            return self.service_tokens[config.get_server(server_name).cftools_service_id]
+        except IndexError:
+            return None
+
     async def renew_login(self):
         async with self.request_lock:
             headers = self.get_headers()
@@ -168,7 +174,7 @@ class OmegaService(managed_service.ManagedService):
             log.debug('using cached value')
             return cached
         else:
-            service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+            service_token = self.get_service_token(server_name)
             request = await self.locking_request('GET', f'{API}/v2/omega/{service_token.token}/leaderboard',
                                                  payload=dict(stat=stat, limit=20))
             result = request.json()
@@ -192,12 +198,12 @@ class OmegaService(managed_service.ManagedService):
         return json.dumps(final_result, indent=2)
 
     async def query_queue_priority(self, server_name):
-        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        service_token = self.get_service_token(server_name)
         request = await self.locking_request('GET', f'{API}/v1/queuepriority/{service_token.token}/list')
         return request.json()
 
     async def create_queue_priority(self, server_name, cftools_id, comment, expires_at):
-        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        service_token = self.get_service_token(server_name)
         request = await self.locking_request('POST', f'{API}/v1/queuepriority/{service_token.token}/create',
                                              payload=dict(cftools_id=cftools_id,
                                                           comment=comment,
@@ -205,7 +211,7 @@ class OmegaService(managed_service.ManagedService):
         return request.json()
 
     async def revoke_queue_priority(self, server_name, cftools_id):
-        service_token = self.service_tokens[config.get_server(server_name).cftools_service_id]
+        service_token = self.get_service_token(server_name)
         request = await self.locking_request('POST', f'{API}/v1/queuepriority/{service_token.token}/revoke',
                                              payload=dict(cftools_id=cftools_id))
         return request.json()
