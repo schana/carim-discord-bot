@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import hashlib
 import logging
+import re
 import textwrap
 
 import discord
@@ -155,6 +156,11 @@ class DiscordService(managed_service.ManagedService):
             log.info(f'chat {message.server_name}: {message.content}')
             channel_id = config.get_server(message.server_name).chat_channel_id
             if channel_id:
+                if config.get_server(message.server_name).chat_ignore_regex:
+                    r = re.compile(config.get_server(message.server_name).chat_ignore_regex)
+                    if r.match(message.content):
+                        log.info(f'chat ignored {message.server_name}: {message.content}')
+                        return
                 channel: discord.TextChannel = self.client.get_channel(channel_id)
                 await channel.send(embed=discord.Embed(description=message.content))
         elif isinstance(message, UserResponse):
