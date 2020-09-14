@@ -63,10 +63,8 @@ user_message_parser = BotArgumentParser(prog='', add_help=False, description='A 
 user_group = user_message_parser.add_argument_group('user commands')
 user_group.add_argument('--leaderboard', action=OptionalIndexAction, metavar=('stat', 'index'),
                         default=argparse.SUPPRESS, help='show leaderboard')
-
-
-# user_group.add_argument('--stats', action=OptionalIndexAction, type=int, metavar=('steam64', 'index'),
-#                        default=argparse.SUPPRESS, help='query stats')
+user_group.add_argument('--stats', action=OptionalIndexAction, type=int, metavar=('steam64', 'index'),
+                        default=argparse.SUPPRESS, help='query stats')
 
 
 def format_help(parser=message_parser):
@@ -241,7 +239,7 @@ async def process_user_message_args(channel_id, parsed_args):
         except IndexError:
             index_names = json.dumps({k: v for k, v in enumerate(config.get().server_names)})
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'Invalid index. Valid options:\n{index_names}')
+                discord_service.UserResponse(channel_id, 'Leaderboard', f'Invalid index. Valid options:\n{index_names}')
             ))
             return
         stat_options = (
@@ -257,7 +255,8 @@ async def process_user_message_args(channel_id, parsed_args):
         )
         if stat not in stat_options:
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'Invalid leaderboard stat. Valid options:\n{stat_options}')
+                discord_service.UserResponse(channel_id, 'Leaderboard',
+                                             f'Invalid leaderboard stat. Valid options:\n{stat_options}')
             ))
             return
         omega_message = omega_service.Leaderboard(server_name, stat)
@@ -279,11 +278,11 @@ async def process_user_message_args(channel_id, parsed_args):
             table = [fmt.format(*row) for row in s]
             formatted_result = '```\n' + '\n'.join(table) + '\n```'
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'**Leaderboard**\n{formatted_result}')
+                discord_service.UserResponse(channel_id, 'Leaderboard', formatted_result)
             ))
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'**Leaderboard**\nquery timed out')
+                discord_service.UserResponse(channel_id, 'Leaderboard', 'query timed out')
             ))
     if 'stats' in parsed_args:
         steam64 = parsed_args.stats[0]
@@ -293,7 +292,7 @@ async def process_user_message_args(channel_id, parsed_args):
         except IndexError:
             index_names = json.dumps({k: v for k, v in enumerate(config.get().server_names)})
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'Invalid index. Valid options:\n{index_names}')
+                discord_service.UserResponse(channel_id, 'Stats', f'Invalid index. Valid options:\n{index_names}')
             ))
             return
         omega_message = omega_service.Stats(server_name, steam64)
@@ -301,9 +300,9 @@ async def process_user_message_args(channel_id, parsed_args):
         try:
             result = await omega_message.result
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'**Stats**\n{result}')
+                discord_service.UserResponse(channel_id, 'Stats', result)
             ))
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, f'**Stats**\nquery timed out')
+                discord_service.UserResponse(channel_id, 'Stats', 'query timed out')
             ))

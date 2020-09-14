@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import hashlib
 import logging
+import textwrap
 
 import discord
 
@@ -40,9 +41,10 @@ class Response(managed_service.Message):
 
 
 class UserResponse(managed_service.Message):
-    def __init__(self, channel_id, text):
+    def __init__(self, channel_id, title, text):
         super().__init__(None)
         self.channel_id = channel_id
+        self.title = title
         self.text = text
 
 
@@ -66,6 +68,37 @@ def get_server_color(server_name):
     return color_options[
         int.from_bytes(hashlib.sha256(bytes(server_name, encoding='utf-8')).digest()[-4:], 'big') % len(
             color_options)]
+
+
+def build_fields(server_name, rolled_up_log):
+    messages = []
+    fields = []
+    current_field = {
+        'name': f'**{server_name}**',
+        'value': ''
+    }
+    validated_log = []
+    for log_line in rolled_up_log:
+        validated_log += textwrap.wrap(log_line, 1000)
+    for log_line in validated_log:
+        if sum(get_field_length(f) for f in fields) > 4096:
+            messages.append(fields)
+            fields = []
+
+        if not current_field['value'] == '' and get_field_length(current_field) + len(log_line) > 1000:
+            fields.append(current_field)
+            current_field = {
+                'name': f'**{server_name}**',
+                'value': ''
+            }
+        current_field['value'] += log_line + '\n'
+    fields.append(current_field)
+    messages.append(fields)
+    return messages
+
+
+def get_field_length(field):
+    return len(field.get('name', '') + field.get('value', ''))
 
 
 class DiscordService(managed_service.ManagedService):
@@ -114,10 +147,10 @@ class DiscordService(managed_service.ManagedService):
             await self.handle_player_count_message(message)
         elif isinstance(message, Log):
             log.info(f'log {message.server_name}: {message.text}')
-            self.log_rollup[message.server_name].append(f'{message.text}')
+            self.log_rollup[message.server_name] += f'{message.text}'.split('\n')
         elif isinstance(message, Response):
             log.info(f'response {message.server_name}: {message.text}')
-            self.log_rollup[message.server_name].append(f'{message.text}')
+            self.log_rollup[message.server_name] += f'{message.text}'.split('\n')
         elif isinstance(message, Chat):
             log.info(f'chat {message.server_name}: {message.content}')
             channel_id = config.get_server(message.server_name).chat_channel_id
@@ -127,7 +160,12 @@ class DiscordService(managed_service.ManagedService):
         elif isinstance(message, UserResponse):
             log.info(f'user message {message.channel_id}: {message.text}')
             channel: discord.TextChannel = self.client.get_channel(message.channel_id)
-            await channel.send(embed=discord.Embed(description=message.text))
+            for m in build_fields(message.title, message.text.split('\n')):
+                embed_dict = {
+                    'color': get_server_color(message.title),
+                    'fields': m
+                }
+                await channel.send(embed=discord.Embed.from_dict(embed_dict))
 
     async def handle_player_count_message(self, message: PlayerCount):
         if config.get_server(message.server_name).player_count_channel_id:
@@ -162,25 +200,8 @@ class DiscordService(managed_service.ManagedService):
         for server_name in config.get_server_names():
             if self.log_rollup[server_name] and datetime.timedelta(seconds=10) < \
                     datetime.datetime.now() - self.last_log_time[server_name]:
-                fields = []
-                current_field = ''
-                for log_line in self.log_rollup[server_name]:
-                    if sum(len(f) for f in fields) > 4096:
-                        await self.send_rolled_log(server_name, fields)
-                        fields = []
-
-                    if len(current_field) + len(log_line) > 1000:
-                        fields.append({
-                            'name': f'**{server_name}**',
-                            'value': current_field
-                        })
-                        current_field = ''
-                    current_field += log_line + '\n'
-                fields.append({
-                    'name': f'**{server_name}**',
-                    'value': current_field
-                })
-                await self.send_rolled_log(server_name, fields)
+                for message in build_fields(server_name, self.log_rollup[server_name]):
+                    await self.send_rolled_log(server_name, message)
 
                 self.last_log_time[server_name] = datetime.datetime.now()
                 self.log_rollup[server_name] = list()
