@@ -1,10 +1,16 @@
 {
-  "token": "",
+  "token": "COMPLETE THIS VALUE",
   "presence_type": "watching",
   "presence": "open source grow",
-  "discord_member_count_channel_id": 0,
+  "discord_member_count_channel_id": 12345678900,
   "discord_member_count_format": "{count} members",
+  "user_channel_ids": [
+    12345678901
+  ],
   "log_player_count_updates": true,
+  "cftools_application_id": "COMPLETE THIS VALUE",
+  "cftools_client_id": "COMPLETE THIS VALUE",
+  "cftools_secret": "COMPLETE THIS VALUE",
   "debug": false,
   "custom_commands": [
     {
@@ -28,31 +34,26 @@
   ],
   "servers": [
     {
-      "name": "My DayZ Server",
-      "ip": "127.0.0.1",
+      "name": "Example Server",
+      "ip": "COMPLETE THIS VALUE",
       "rcon_port": 2302,
-      "rcon_password": "",
+      "rcon_password": "COMPLETE THIS VALUE",
       "steam_port": 27016,
-      "admin_channel_id": 0,
-      "chat_channel_id": 0,
+      "admin_channel_id": 12345678902,
+      "chat_channel_id": 12345678903,
       "chat_ignore_regex": ".*: !.*",
       "chat_show_connect_disconnect_notices": true,
-      "player_count_channel_id": 0,
-      "player_count_format": "{players}/{slots} players online",
+      "player_count_channel_id": 12345678904,
+      "player_count_format": "Players: {players}/{slots}",
+      "player_count_queue_format": " +{queue}",
       "player_count_update_interval": 30,
       "log_rcon_messages": true,
       "log_rcon_keep_alive": false,
+      "cftools_service_id": "COMPLETE THIS VALUE",
       "scheduled_commands": [
         {
-          "command": "safe_shutdown",
-          "delay": 3600,
-          "interval": 21600,
-          "with_clock": true,
-          "offset": 3600
-        },
-        {
-          "command": "say -1 Visit on Discord: https://discord.gg/kdPnVu4",
-          "interval": 400,
+          "command": "say -1 Visit Carim on Discord: https://discord.gg/kdPnVu4",
+          "interval": 600,
           "offset": 0
         }
       ]
