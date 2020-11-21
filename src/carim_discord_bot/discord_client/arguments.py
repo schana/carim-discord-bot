@@ -232,7 +232,7 @@ async def process_admin_args(server_name, parsed_args, message):
 
 async def process_user_message_args(channel_id, parsed_args):
     if 'leaderboard' in parsed_args:
-        stat = parsed_args.leaderboard[0]
+        query_stat = parsed_args.leaderboard[0]
         server_index = parsed_args.leaderboard[1]
         try:
             server_name = config.get().server_names[server_index]
@@ -253,13 +253,13 @@ async def process_user_message_args(channel_id, parsed_args):
             'longest_kill_distance',
             'kdratio'
         )
-        if stat not in stat_options:
+        if query_stat not in stat_options:
             asyncio.create_task(discord_service.get_service_manager().send_message(
                 discord_service.UserResponse(channel_id, 'Leaderboard',
                                              f'Invalid leaderboard stat. Valid options:\n{stat_options}')
             ))
             return
-        omega_message = omega_service.Leaderboard(server_name, stat)
+        omega_message = omega_service.Leaderboard(server_name, query_stat)
         await omega_service.get_service_manager().send_message(omega_message)
         try:
             result = await omega_message.result
@@ -268,9 +268,16 @@ async def process_user_message_args(channel_id, parsed_args):
             for r in result.get('users', list()):
                 if stats is None:
                     stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
-                    result_data.append([stat for stat in ('rank',) + stats + ('name',)])
-                line_items = [r['rank']] + [f'{r[stat]:.2f}' if isinstance(r[stat], float) else r[stat] for stat in
-                                            stats] + [r['latest_name']]
+                    result_data.append([stat for stat in ('#',) + stats + ('name',)])
+                line_items = [r['rank']]
+                for stat in stats:
+                    if isinstance(r[stat], float):
+                        line_items += [f'{r[stat]:.2f}']
+                    elif stat == 'playtime':
+                        line_items += [str(datetime.timedelta(seconds=r[stat]))]
+                    else:
+                        line_items += [r[stat]]
+                line_items += [r['latest_name']]
                 result_data.append(line_items)
             s = [[str(e) for e in row] for row in result_data]
             lens = [max(map(len, col)) for col in zip(*s)]
