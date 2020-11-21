@@ -207,7 +207,7 @@ class OmegaService(managed_service.ManagedService):
             longest_kill_weapon=stats.get('longest_kill_weapon', '')
         )
 
-        return json.dumps(response, indent=1)
+        return json.dumps(response, indent=1, ensure_ascii=False)
 
     async def query_queue_priority(self, server_name):
         service_token = self.get_service_token(server_name)
