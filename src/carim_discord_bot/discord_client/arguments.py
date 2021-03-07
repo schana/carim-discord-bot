@@ -270,8 +270,8 @@ async def process_user_message_args(channel_id, parsed_args):
                     stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
                     result_data.append([stat for stat in ('#',) + ('name',) + stats])
                 line_items = [r['rank']]
-                for stat in stats:
                 line_items += [r['latest_name']]
+                for stat in stats:
                     if isinstance(r[stat], float):
                         line_items += [f'{r[stat]:.2f}']
                     elif stat == 'playtime':
@@ -285,7 +285,7 @@ async def process_user_message_args(channel_id, parsed_args):
             table = [fmt.format(*row) for row in s]
             formatted_result = '```\n' + '\n'.join(table) + '\n```'
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, 'Leaderboard https://i.postimg.cc/ydFdN3s6/the-verge-icon.png', formatted_result)
+                discord_service.UserResponse(channel_id, 'Leaderboard', formatted_result)
             ))
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(
