@@ -268,16 +268,16 @@ async def process_user_message_args(channel_id, parsed_args):
             for r in result.get('users', list()):
                 if stats is None:
                     stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
-                    result_data.append([stat for stat in ('#',) + stats + ('name',)])
+                    result_data.append([stat for stat in ('#',) + ('name',) + stats])
                 line_items = [r['rank']]
                 for stat in stats:
+                line_items += [r['latest_name']]
                     if isinstance(r[stat], float):
                         line_items += [f'{r[stat]:.2f}']
                     elif stat == 'playtime':
                         line_items += [str(datetime.timedelta(seconds=r[stat]))]
                     else:
                         line_items += [r[stat]]
-                line_items += [r['latest_name']]
                 result_data.append(line_items)
             s = [[str(e) for e in row] for row in result_data]
             lens = [max(map(len, col)) for col in zip(*s)]
@@ -285,7 +285,7 @@ async def process_user_message_args(channel_id, parsed_args):
             table = [fmt.format(*row) for row in s]
             formatted_result = '```\n' + '\n'.join(table) + '\n```'
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, 'Leaderboard', formatted_result)
+                discord_service.UserResponse(channel_id, 'Leaderboard https://i.postimg.cc/ydFdN3s6/the-verge-icon.png', formatted_result)
             ))
         except asyncio.CancelledError:
             asyncio.create_task(discord_service.get_service_manager().send_message(
