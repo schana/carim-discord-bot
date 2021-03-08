@@ -268,8 +268,9 @@ async def process_user_message_args(channel_id, parsed_args):
             for r in result.get('users', list()):
                 if stats is None:
                     stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
-                    result_data.append([stat for stat in ('#',) + stats + ('name',)])
+                    result_data.append([stat for stat in ('#',) + ('name',) + stats])
                 line_items = [r['rank']]
+                line_items += [r['latest_name']]
                 for stat in stats:
                     if isinstance(r[stat], float):
                         line_items += [f'{r[stat]:.2f}']
@@ -277,7 +278,6 @@ async def process_user_message_args(channel_id, parsed_args):
                         line_items += [str(datetime.timedelta(seconds=r[stat]))]
                     else:
                         line_items += [r[stat]]
-                line_items += [r['latest_name']]
                 result_data.append(line_items)
             s = [[str(e) for e in row] for row in result_data]
             lens = [max(map(len, col)) for col in zip(*s)]
