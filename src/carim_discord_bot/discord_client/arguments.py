@@ -267,7 +267,7 @@ async def process_user_message_args(channel_id, parsed_args):
             stats = None
             for r in result.get('users', list()):
                 if stats is None:
-                    stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
+                    stats = tuple reversed(tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name')))
                     result_data.append([stat for stat in ('#',) + ('name',) + stats])
                 line_items = [r['rank']]
                 line_items += [r['latest_name']]
