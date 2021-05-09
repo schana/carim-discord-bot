@@ -9,7 +9,7 @@ from pkg_resources import resource_filename
 
 import carim_discord_bot
 from carim_discord_bot import setup_instructions, config
-from carim_discord_bot.cftools import omega_service
+from carim_discord_bot.cftools import omega_service, cf_cloud_service
 from carim_discord_bot.discord_client import discord_service, member_count
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import player_count, scheduled_command
@@ -85,7 +85,9 @@ async def start_service_managers():
     await discord_service.get_service_manager().start()
     await member_count.get_service_manager().start()
 
-    if config.get().cftools_application_id is not None:
+    if config.get().cf_cloud_application_id is not None:
+        await cf_cloud_service.get_service_manager().start()
+    elif config.get().cftools_application_id is not None:
         await omega_service.get_service_manager().start()
 
     for server_name in config.get_server_names():

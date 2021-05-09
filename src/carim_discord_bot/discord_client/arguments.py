@@ -8,7 +8,7 @@ from typing import Sequence, Text
 
 import carim_discord_bot
 from carim_discord_bot import config
-from carim_discord_bot.cftools import omega_service
+from carim_discord_bot.cftools import omega_service, cf_cloud_service
 from carim_discord_bot.discord_client import discord_service
 from carim_discord_bot.rcon import rcon_service
 from carim_discord_bot.services import scheduled_command
@@ -242,27 +242,44 @@ async def process_user_message_args(channel_id, parsed_args):
                 discord_service.UserResponse(channel_id, 'Leaderboard', f'Invalid index. Valid options:\n{index_names}')
             ))
             return
-        stat_options = (
-            'deaths',
-            'kills',
-            'playtime',
-            'damage_dealt',
-            'damage_taken',
-            'hits',
-            'hitted',
-            'longest_kill_distance',
-            'kdratio'
-        )
+        if config.get().cf_cloud_application_id is not None:
+            stat_options = (
+                'deaths',
+                'kills',
+                'playtime',
+                'longest_kill',
+                'longest_shot',
+                'suicides',
+                'kdratio'
+            )
+        else:
+            stat_options = (
+                'deaths',
+                'kills',
+                'playtime',
+                'damage_dealt',
+                'damage_taken',
+                'hits',
+                'hitted',
+                'longest_kill_distance',
+                'kdratio'
+            )
         if query_stat not in stat_options:
             asyncio.create_task(discord_service.get_service_manager().send_message(
                 discord_service.UserResponse(channel_id, 'Leaderboard',
                                              f'Invalid leaderboard stat. Valid options:\n{stat_options}')
             ))
             return
-        omega_message = omega_service.Leaderboard(server_name, query_stat)
-        await omega_service.get_service_manager().send_message(omega_message)
+
+        if config.get().cf_cloud_application_id is not None:
+            message = cf_cloud_service.Leaderboard(server_name, query_stat)
+            await cf_cloud_service.get_service_manager().send_message(message)
+        else:
+            message = omega_service.Leaderboard(server_name, query_stat)
+            await omega_service.get_service_manager().send_message(message)
+
         try:
-            result = await omega_message.result
+            result = await message.result
             result_data = []
             stats = None
             for r in result.get('users', list()):
@@ -302,10 +319,16 @@ async def process_user_message_args(channel_id, parsed_args):
                 discord_service.UserResponse(channel_id, 'Stats', f'Invalid index. Valid options:\n{index_names}')
             ))
             return
-        omega_message = omega_service.Stats(server_name, steam64)
-        await omega_service.get_service_manager().send_message(omega_message)
+
+        if config.get().cf_cloud_application_id is not None:
+            message = cf_cloud_service.Stats(server_name, steam64)
+            await cf_cloud_service.get_service_manager().send_message(message)
+        else:
+            message = omega_service.Stats(server_name, steam64)
+            await omega_service.get_service_manager().send_message(message)
+
         try:
-            result = await omega_message.result
+            result = await message.result
             asyncio.create_task(discord_service.get_service_manager().send_message(
                 discord_service.UserResponse(channel_id, 'Stats', result)
             ))
