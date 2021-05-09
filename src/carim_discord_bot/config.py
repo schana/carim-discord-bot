@@ -23,6 +23,9 @@ class GlobalConfig:
         self.cftools_client_id = None
         self.cftools_secret = None
 
+        self.cf_cloud_application_id = None
+        self.cf_cloud_secret = None
+
         self.server_names = list()
 
         self.custom_commands = list()
@@ -50,6 +53,8 @@ class ServerConfig:
         self.log_rcon_keep_alive = False
 
         self.cftools_service_id = None
+
+        self.cf_cloud_server_api_id = None
 
         self.scheduled_commands = list()
 

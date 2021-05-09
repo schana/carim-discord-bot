@@ -10,6 +10,8 @@
     "cftools_application_id": "ApplicationID provided by cftools at https://network.cftools.de/cfapi/overview",
     "cftools_client_id": "Client-ID provided by cftools at https://network.cftools.de/cfapi/overview",
     "cftools_secret": "Secret provided by cftools when creating the application",
+    "cf_cloud_application_id": "Application ID provided by cf cloud at https://developer.cftools.cloud/applications",
+    "cf_cloud_secret": "Secret provided by cf cloud at https://developer.cftools.cloud/applications",
     "debug": "Set the logging level to DEBUG for the locally running app. Equivalent to running with -v"
   },
   "servers": {
@@ -27,7 +29,8 @@
     "player_count_update_interval" : "Time, in seconds, between player count update queries",
     "log_rcon_messages": "Send all RCon messages to admin log channel",
     "log_rcon_keep_alive": "Send RCon keep alive status messages to admin log channel",
-    "cftools_service_id": "Service ID cftools associates with the server"
+    "cftools_service_id": "Service ID cftools associates with the server",
+    "cf_cloud_server_api_id": "Identifies a CFTools Cloud server instance and is available from the API settings"
   },
   "scheduled_commands": {
     "command": "RCon command to run with parameters. Also accepts 'safe_shutdown'. See the template for examples",
