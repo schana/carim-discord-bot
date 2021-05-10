@@ -280,22 +280,43 @@ async def process_user_message_args(channel_id, parsed_args):
 
         try:
             result = await message.result
-            result_data = []
-            stats = None
-            for r in result.get('leaderboard' if config.get().cf_cloud_application_id is not None else 'users', list()):
-                if stats is None:
-                    stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
-                    result_data.append([stat for stat in ('#',) + ('name',) + stats])
-                line_items = [r['rank']]
-                line_items += [r['latest_name']]
-                for stat in stats:
-                    if isinstance(r[stat], float):
-                        line_items += [f'{r[stat]:.2f}']
-                    elif stat == 'playtime':
-                        line_items += [str(datetime.timedelta(seconds=r[stat]))]
-                    else:
-                        line_items += [r[stat]]
-                result_data.append(line_items)
+
+            if config.get().cf_cloud_application_id is not None:
+                stats = set()
+                for r in result.get('leaderboard', list()):
+                    stats |= set(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
+                stats = tuple(stats)
+                result_data = [stat for stat in ('#',) + ('name',) + stats]
+                log.debug(result_data)
+                for r in result.get('leaderboard', list()):
+                    line_items = [r['rank']]
+                    line_items += [r['latest_name']]
+                    for stat in stats:
+                        value = r.get(stat, '0')
+                        if isinstance(value, float):
+                            line_items += [f'{value:.2f}']
+                        elif stat == 'playtime':
+                            line_items += [str(datetime.timedelta(seconds=value))]
+                        else:
+                            line_items += [value]
+                    result_data.append(line_items)
+            else:
+                result_data = []
+                stats = None
+                for r in result.get('users', list()):
+                    if stats is None:
+                        stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
+                        result_data.append([stat for stat in ('#',) + ('name',) + stats])
+                    line_items = [r['rank']]
+                    line_items += [r['latest_name']]
+                    for stat in stats:
+                        if isinstance(r[stat], float):
+                            line_items += [f'{r[stat]:.2f}']
+                        elif stat == 'playtime':
+                            line_items += [str(datetime.timedelta(seconds=r[stat]))]
+                        else:
+                            line_items += [r[stat]]
+                    result_data.append(line_items)
             s = [[str(e) for e in row] for row in result_data]
             lens = [max(map(len, col)) for col in zip(*s)]
             fmt = ' '.join('{{:{}}}'.format(x) for x in lens)

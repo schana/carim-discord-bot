@@ -158,11 +158,11 @@ class CloudService(managed_service.ManagedService):
                 request = requests.request(method, url, headers=self.get_headers(), params=payload)
             elif method == 'POST':
                 request = requests.request(method, url, headers=self.get_headers(), json=payload)
-        log.debug(f'{method} {url}')
+        log.info(f'{method} {url}')
         log.debug(f'request headers: {request.request.headers}')
         log.debug(f'request body:    {request.request.body}')
-        log.debug(f'response status: {request.status_code}')
-        log.debug(f'response:        {request.content}')
+        log.info(f'response status: {request.status_code}')
+        log.info(f'response:        {request.content}')
         return request
 
     def get_headers(self):
