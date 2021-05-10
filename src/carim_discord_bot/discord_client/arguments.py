@@ -282,7 +282,7 @@ async def process_user_message_args(channel_id, parsed_args):
             result = await message.result
             result_data = []
             stats = None
-            for r in result.get('users', list()):
+            for r in result.get('leaderboard' if config.get().cf_cloud_application_id is not None else 'users', list()):
                 if stats is None:
                     stats = tuple(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
                     result_data.append([stat for stat in ('#',) + ('name',) + stats])
