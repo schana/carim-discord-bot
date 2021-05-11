@@ -71,12 +71,12 @@ def get_server_color(server_name):
             color_options)]
 
 
-def build_fields(server_name, rolled_up_log):
+def build_fields(server_name, rolled_up_log, formatted=False):
     messages = []
     fields = []
     current_field = {
         'name': f'**{server_name}**',
-        'value': ''
+        'value': '```\n' if formatted else ''
     }
     validated_log = []
     for log_line in rolled_up_log:
@@ -87,15 +87,20 @@ def build_fields(server_name, rolled_up_log):
             fields = []
 
         if not current_field['value'] == '' and get_field_length(current_field) + len(log_line) > 1000:
+            current_field['value'] += '```'
             fields.append(current_field)
             current_field = {
-                'name': f'**{server_name}**',
-                'value': ''
+                'name': '' if formatted else f'**{server_name}**',
+                'value': '```\n' if formatted else ''
             }
         current_field['value'] += log_line + '\n'
     fields.append(current_field)
     messages.append(fields)
     return messages
+
+
+def build_formatted_fields(server_name, rolled_up_log):
+    return build_fields(server_name, rolled_up_log, formatted=True)
 
 
 def get_field_length(field):
@@ -166,7 +171,7 @@ class DiscordService(managed_service.ManagedService):
         elif isinstance(message, UserResponse):
             log.info(f'user message {message.channel_id}: {message.text}')
             channel: discord.TextChannel = self.client.get_channel(message.channel_id)
-            for m in build_fields(message.title, message.text.split('\n')):
+            for m in build_formatted_fields(message.title, message.text.split('\n')):
                 embed_dict = {
                     'color': get_server_color(message.title),
                     'fields': m

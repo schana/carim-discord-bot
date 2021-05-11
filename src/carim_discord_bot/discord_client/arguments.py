@@ -322,7 +322,7 @@ async def process_user_message_args(channel_id, parsed_args):
             lens = [max(map(len, col)) for col in zip(*s)]
             fmt = ' '.join('{{:{}}}'.format(x) for x in lens)
             table = [fmt.format(*row) for row in s]
-            formatted_result = '```\n' + '\n'.join(table) + '\n```'
+            formatted_result = '\n'.join(table)
             asyncio.create_task(discord_service.get_service_manager().send_message(
                 discord_service.UserResponse(channel_id, 'Leaderboard', formatted_result)
             ))
