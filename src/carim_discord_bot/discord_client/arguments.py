@@ -281,12 +281,14 @@ async def process_user_message_args(channel_id, parsed_args):
         try:
             result = await message.result
 
+            result_data = []
+
             if config.get().cf_cloud_application_id is not None:
                 stats = set()
                 for r in result.get('leaderboard', list()):
                     stats |= set(k for k in r.keys() if k not in ('cftools_id', 'rank', 'latest_name'))
                 stats = tuple(stats)
-                result_data = [stat for stat in ('#',) + ('name',) + stats]
+                result_data.append([stat for stat in ('#',) + ('name',) + stats])
                 log.debug(result_data)
                 for r in result.get('leaderboard', list()):
                     line_items = [r['rank']]
@@ -301,7 +303,6 @@ async def process_user_message_args(channel_id, parsed_args):
                             line_items += [value]
                     result_data.append(line_items)
             else:
-                result_data = []
                 stats = None
                 for r in result.get('users', list()):
                     if stats is None:
