@@ -90,10 +90,11 @@ def build_fields(server_name, rolled_up_log, formatted=False):
             current_field['value'] += '```'
             fields.append(current_field)
             current_field = {
-                'name': '' if formatted else f'**{server_name}**',
+                'name': f'{server_name}' if formatted else f'**{server_name}**',
                 'value': '```\n' if formatted else ''
             }
         current_field['value'] += log_line + '\n'
+    current_field['value'] += '```'
     fields.append(current_field)
     messages.append(fields)
     return messages

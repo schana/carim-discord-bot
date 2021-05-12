@@ -326,9 +326,9 @@ async def process_user_message_args(channel_id, parsed_args):
             asyncio.create_task(discord_service.get_service_manager().send_message(
                 discord_service.UserResponse(channel_id, 'Leaderboard', formatted_result)
             ))
-        except asyncio.CancelledError:
+        except (AttributeError, asyncio.CancelledError):
             asyncio.create_task(discord_service.get_service_manager().send_message(
-                discord_service.UserResponse(channel_id, 'Leaderboard', 'query timed out')
+                discord_service.UserResponse(channel_id, 'Leaderboard', 'query failed')
             ))
     if 'stats' in parsed_args:
         steam64 = parsed_args.stats[0]

@@ -113,10 +113,11 @@ class CloudService(managed_service.ManagedService):
         else:
             server_api_id = config.get_server(server_name).cf_cloud_server_api_id
             request = await self.locking_request('GET', f'{API}/v1/server/{server_api_id}/leaderboard',
-                                                 payload=dict(stat=stat, limit=20, order=1))
-            result = request.json()
-            if not result.get('status', False):
+                                                 payload=dict(stat=stat, limit=20, order=-1))
+            if request.status_code != 200 or not request.json().get('status', False):
                 return 'Query failed'
+            result = request.json()
+            result['leaderboard'] = [{'rank': entry['rank'], 'latest_name': entry['latest_name'], stat: entry[stat]} for entry in result.get('leaderboard', list())]
             self.leaderboard_cache.set(server_name, stat, result)
             return result
 
@@ -124,16 +125,17 @@ class CloudService(managed_service.ManagedService):
         server_api_id = config.get_server(server_name).cf_cloud_server_api_id
         request = await self.locking_request('GET', f'{API}/v1/server/{server_api_id}/lookup',
                                              payload=dict(identifier=steam64))
+        if request.status_code != 200 or not request.json().get('status', False):
+            return 'Lookup failed'
         result = request.json()
-        if not result.get('status', False):
-            return 'Not found'
         cftools_id = result.get('cftools_id')
 
         request = await self.locking_request('GET', f'{API}/v1/server/{server_api_id}/player',
                                              payload=dict(cftools_id=cftools_id))
-
+        if request.status_code != 200 or not request.json().get('status', False):
+            return 'Query failed'
         result = request.json()
-        log.debug(f'result: {result}')
+        log.info(f'result: {result}')
         user = result.get('user', dict())
         stats = user.get('stats', dict())
 

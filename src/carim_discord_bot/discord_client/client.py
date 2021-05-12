@@ -49,7 +49,7 @@ class CarimClient(discord.Client):
             except (ValueError, argparse.ArgumentError):
                 log.info(f'invalid command {message.content}')
                 asyncio.create_task(discord_service.get_service_manager().send_message(
-                    discord_service.UserResponse(message.channel.id, f'invalid command\n`{message.content}`')
+                    discord_service.UserResponse(message.channel.id, 'invalid command', f'{message.content}')
                 ))
                 return
             await arguments.process_user_message_args(message.channel.id, parsed_args)
